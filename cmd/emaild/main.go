@@ -7,9 +7,15 @@ import (
 var buildId string
 
 func main() {
+	var c *program.Command
+
 	program := program.NewProgram("emaild", "a self-contained email server")
 
+	c = program.AddCommand("parse-message", "parse a message", cmdParseMessage)
+	c.AddOptionalArgument("path", "the path of the message file")
+
 	program.AddCommand("run", "run the server", cmdRun)
+
 	program.AddCommand("version", "print the version of the server and exit",
 		cmdVersion)
 

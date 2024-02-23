@@ -6,57 +6,35 @@ import (
 	"regexp"
 	"time"
 	"unicode/utf8"
+
+	"github.com/galdor/emaild/pkg/utils"
 )
 
 var (
-	phraseWordSeparatorRE = regexp.MustCompile("\\s")
+	phraseWordSeparatorRE = regexp.MustCompile("\\s+")
 )
 
-type HeaderWriter struct {
-	MaxLineLength int
+type DataWriter struct {
+	MaxLineLength int // 0 if no maximum line length
 
-	buf        *bytes.Buffer
+	buf        bytes.Buffer
 	lineLength int
 }
 
-func NewHeaderWriter(buf *bytes.Buffer) *HeaderWriter {
-	return &HeaderWriter{
-		MaxLineLength: 76,
+func (w *DataWriter) Bytes() []byte {
+	return w.buf.Bytes()
+}
 
-		buf: buf,
+func NewDataWriter(maxLineLength int) *DataWriter {
+	return &DataWriter{
+		MaxLineLength: maxLineLength,
 	}
 }
 
-func (w *HeaderWriter) WriteHeader(header []Field) error {
-	for _, field := range header {
-		w.WriteField(field)
-	}
-
-	return nil
-}
-
-func (w *HeaderWriter) WriteField(f Field) error {
-	w.WriteString(f.FieldName())
-	w.WriteString(": ")
-
-	if err := f.WriteValue(w); err != nil {
-		return fmt.Errorf("invalid value: %w", err)
-	}
-
-	w.WriteEOL()
-
-	return nil
-}
-
-func (w *HeaderWriter) WriteEOL() {
-	w.buf.WriteString("\r\n")
-	w.lineLength = 0
-}
-
-func (w *HeaderWriter) WriteRune(c rune) {
+func (w *DataWriter) WriteRune(c rune) {
 	sz := utf8.RuneLen(c)
 
-	if w.lineLength+sz > w.MaxLineLength {
+	if w.MaxLineLength > 0 && w.lineLength+sz > w.MaxLineLength {
 		w.buf.WriteString("\r\n ")
 		w.lineLength = 1
 	}
@@ -65,8 +43,8 @@ func (w *HeaderWriter) WriteRune(c rune) {
 	w.lineLength += sz
 }
 
-func (w *HeaderWriter) WriteString(s string) {
-	if w.lineLength+len(s) > w.MaxLineLength {
+func (w *DataWriter) WriteString(s string) {
+	if w.MaxLineLength > 0 && w.lineLength+len(s) > w.MaxLineLength {
 		w.buf.WriteString("\r\n ")
 		w.lineLength = 1
 	}
@@ -75,16 +53,43 @@ func (w *HeaderWriter) WriteString(s string) {
 	w.lineLength += len(s)
 }
 
-func (w *HeaderWriter) WriteUnstructured(s string) {
+func (w *DataWriter) WriteHeader(header []*Field) error {
+	for _, field := range header {
+		w.WriteField(field)
+	}
+
+	return nil
+}
+
+func (w *DataWriter) WriteField(f *Field) error {
+	// TODO Raw
+	w.WriteString(f.Name)
+	w.WriteString(": ")
+
+	if err := f.Value.Write(w); err != nil {
+		return fmt.Errorf("invalid value: %w", err)
+	}
+
+	w.WriteEOL()
+
+	return nil
+}
+
+func (w *DataWriter) WriteEOL() {
+	w.buf.WriteString("\r\n")
+	w.lineLength = 0
+}
+
+func (w *DataWriter) WriteUnstructured(s string) {
 	for _, c := range s {
 		w.WriteRune(c)
 	}
 }
 
-func (w *HeaderWriter) WriteQuotedString(s string) error {
-	// All printable ASCII characters are allowed; space and backslash must be
-	// escaped with a single backslash. UTF-8 sequences are allowed (see RFC
-	// 6532 Internationalized Email Headers).
+func (w *DataWriter) WriteQuotedString(s string) error {
+	// All printable ASCII characters are allowed; space and backslash
+	// characters must be escaped with a single backslash. UTF-8 sequences are
+	// allowed (see RFC 6532 Internationalized Email Headers).
 	//
 	// Quoted strings can be folded. We can split between characters as long as
 	// we do not split quoted pairs (e.g. "\\") or UTF-8 sequences.
@@ -107,7 +112,7 @@ func (w *HeaderWriter) WriteQuotedString(s string) error {
 	return nil
 }
 
-func (w *HeaderWriter) WriteAtomOrQuotedString(s string) error {
+func (w *DataWriter) WriteAtomOrQuotedString(s string) error {
 	if IsAtom(s) {
 		w.WriteString(s)
 		return nil
@@ -116,7 +121,7 @@ func (w *HeaderWriter) WriteAtomOrQuotedString(s string) error {
 	return w.WriteQuotedString(s)
 }
 
-func (w *HeaderWriter) WriteDotAtomOrQuotedString(s string) error {
+func (w *DataWriter) WriteDotAtomOrQuotedString(s string) error {
 	if IsDotAtom(s) {
 		w.WriteString(s)
 		return nil
@@ -125,7 +130,7 @@ func (w *HeaderWriter) WriteDotAtomOrQuotedString(s string) error {
 	return w.WriteQuotedString(s)
 }
 
-func (w *HeaderWriter) WritePhrase(phrase string) error {
+func (w *DataWriter) WritePhrase(phrase string) error {
 	// Phrases are defined as a list of at least one word. The correct
 	// representation would be []string, but it is inconvenient. So we extract
 	// words from the string ourselves then encode them.
@@ -144,7 +149,7 @@ func (w *HeaderWriter) WritePhrase(phrase string) error {
 	return nil
 }
 
-func (w *HeaderWriter) WritePhraseList(phrases []string) error {
+func (w *DataWriter) WritePhraseList(phrases []string) error {
 	for i, phrase := range phrases {
 		if i > 0 {
 			w.WriteString(", ")
@@ -158,7 +163,7 @@ func (w *HeaderWriter) WritePhraseList(phrases []string) error {
 	return nil
 }
 
-func (w *HeaderWriter) WriteDateTime(date time.Time) {
+func (w *DataWriter) WriteDateTime(date time.Time) {
 	// RFC 5322 3.3. Date and Time Specification
 
 	w.WriteString(date.Format("Mon"))
@@ -170,7 +175,7 @@ func (w *HeaderWriter) WriteDateTime(date time.Time) {
 	w.WriteString(date.Format("-0700"))
 }
 
-func (w *HeaderWriter) WriteMessageId(id MessageId) error {
+func (w *DataWriter) WriteMessageId(id MessageId) error {
 	// RFC 5322 3.6.4. Identification Fields
 
 	w.WriteRune('<')
@@ -182,7 +187,7 @@ func (w *HeaderWriter) WriteMessageId(id MessageId) error {
 	return nil
 }
 
-func (w *HeaderWriter) WriteMessageIdList(ids []MessageId) error {
+func (w *DataWriter) WriteMessageIdList(ids []MessageId) error {
 	for i, id := range ids {
 		if i > 0 {
 			w.WriteRune(' ')
@@ -196,18 +201,19 @@ func (w *HeaderWriter) WriteMessageIdList(ids []MessageId) error {
 	return nil
 }
 
-func (w *HeaderWriter) WriteAddress(addr Address) error {
+func (w *DataWriter) WriteAddress(addr Address) error {
 	switch addr2 := addr.(type) {
 	case *Mailbox:
 		return w.WriteMailbox(addr2)
 	case *Group:
 		return w.WriteGroup(addr2)
-	default:
-		panic(fmt.Sprintf("unhandled address %#v (%T)", addr, addr))
 	}
+
+	utils.Panicf("unhandled address %#v (%T)", addr, addr)
+	return nil // the Go compiler still cannot do basic flow analysis...
 }
 
-func (w *HeaderWriter) WriteAddressList(addrs []Address) error {
+func (w *DataWriter) WriteAddressList(addrs []Address) error {
 	for i, addr := range addrs {
 		if i > 0 {
 			w.WriteString(", ")
@@ -221,7 +227,7 @@ func (w *HeaderWriter) WriteAddressList(addrs []Address) error {
 	return nil
 }
 
-func (w *HeaderWriter) WriteMailbox(mailbox *Mailbox) error {
+func (w *DataWriter) WriteMailbox(mailbox *Mailbox) error {
 	if mailbox.DisplayName == "" {
 		return w.WriteAddressSpecification(mailbox.AddressSpecification)
 	}
@@ -241,7 +247,7 @@ func (w *HeaderWriter) WriteMailbox(mailbox *Mailbox) error {
 	return nil
 }
 
-func (w *HeaderWriter) WriteMailboxList(mailboxes []*Mailbox) error {
+func (w *DataWriter) WriteMailboxList(mailboxes []*Mailbox) error {
 	for i, mailbox := range mailboxes {
 		if i > 0 {
 			w.WriteString(", ")
@@ -255,7 +261,7 @@ func (w *HeaderWriter) WriteMailboxList(mailboxes []*Mailbox) error {
 	return nil
 }
 
-func (w *HeaderWriter) WriteAddressSpecification(spec AddressSpecification) error {
+func (w *DataWriter) WriteAddressSpecification(spec AddressSpecification) error {
 	if err := w.WriteDotAtomOrQuotedString(spec.LocalPart); err != nil {
 		return fmt.Errorf("invalid local part: %w", err)
 	}
@@ -267,7 +273,7 @@ func (w *HeaderWriter) WriteAddressSpecification(spec AddressSpecification) erro
 	return nil
 }
 
-func (w *HeaderWriter) WriteGroup(group *Group) error {
+func (w *DataWriter) WriteGroup(group *Group) error {
 	if group.DisplayName == "" {
 		return fmt.Errorf("invalid empty display name")
 	}

@@ -3,18 +3,21 @@ package imf
 import (
 	"fmt"
 	"time"
+
+	"github.com/galdor/emaild/pkg/utils"
 )
 
-// RFC 5322 3.6. Field Definitions
+// RFC 5322 3.6. FieldValue Definitions
 
 // Return-Path
-type ReturnPathField AddressSpecification
+type ReturnPathFieldValue AddressSpecification
 
-func (f ReturnPathField) FieldName() string {
-	return "ReturnPath"
+func (f *ReturnPathFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ReturnPathField) WriteValue(w *HeaderWriter) error {
+func (f ReturnPathFieldValue) Write(w *DataWriter) error {
 	w.WriteRune('<')
 
 	if f.LocalPart == "" && f.Domain == "" {
@@ -27,16 +30,17 @@ func (f ReturnPathField) WriteValue(w *HeaderWriter) error {
 }
 
 // Received
-type ReceivedField struct {
+type ReceivedFieldValue struct {
 	Tokens []ReceivedToken
 	Date   time.Time
 }
 
-func (f ReceivedField) FieldName() string {
-	return "Received"
+func (f *ReceivedFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ReceivedField) WriteValue(w *HeaderWriter) error {
+func (f ReceivedFieldValue) Write(w *DataWriter) error {
 	for i, token := range f.Tokens {
 		if i > 0 {
 			w.WriteRune(' ')
@@ -48,8 +52,7 @@ func (f ReceivedField) WriteValue(w *HeaderWriter) error {
 		case AddressSpecification:
 			w.WriteAddressSpecification(value)
 		default:
-			panic(fmt.Sprintf("unhandled received token %#v (%T)",
-				token, token))
+			utils.Panicf("unhandled received token %#v (%T)", token, token)
 		}
 	}
 
@@ -61,25 +64,27 @@ func (f ReceivedField) WriteValue(w *HeaderWriter) error {
 }
 
 // Resent-Date
-type ResentDateField time.Time
+type ResentDateFieldValue time.Time
 
-func (f ResentDateField) FieldName() string {
-	return "Resent-Date"
+func (f *ResentDateFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ResentDateField) WriteValue(w *HeaderWriter) error {
+func (f ResentDateFieldValue) Write(w *DataWriter) error {
 	w.WriteDateTime(time.Time(f))
 	return nil
 }
 
 // Resent-From
-type ResentFromField []*Mailbox
+type ResentFromFieldValue []*Mailbox
 
-func (f ResentFromField) FieldName() string {
-	return "Resent-From"
+func (f *ResentFromFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ResentFromField) WriteValue(w *HeaderWriter) error {
+func (f ResentFromFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty mailbox list")
 	}
@@ -88,25 +93,27 @@ func (f ResentFromField) WriteValue(w *HeaderWriter) error {
 }
 
 // Resent-Sender
-type ResentSenderField Mailbox
+type ResentSenderFieldValue Mailbox
 
-func (f ResentSenderField) FieldName() string {
-	return "Resent-Sender"
+func (f *ResentSenderFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ResentSenderField) WriteValue(w *HeaderWriter) error {
+func (f ResentSenderFieldValue) Write(w *DataWriter) error {
 	mailbox := Mailbox(f)
 	return w.WriteMailbox(&mailbox)
 }
 
 // Resent-To
-type ResentToField []Address
+type ResentToFieldValue []Address
 
-func (f ResentToField) FieldName() string {
-	return "Resent-To"
+func (f *ResentToFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ResentToField) WriteValue(w *HeaderWriter) error {
+func (f ResentToFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid address list")
 	}
@@ -115,13 +122,14 @@ func (f ResentToField) WriteValue(w *HeaderWriter) error {
 }
 
 // Resent-Cc
-type ResentCcField []Address
+type ResentCcFieldValue []Address
 
-func (f ResentCcField) FieldName() string {
-	return "Resent-Cc"
+func (f *ResentCcFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ResentCcField) WriteValue(w *HeaderWriter) error {
+func (f ResentCcFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid address list")
 	}
@@ -130,49 +138,53 @@ func (f ResentCcField) WriteValue(w *HeaderWriter) error {
 }
 
 // Resent-Bcc
-type ResentBccField []Address
+type ResentBccFieldValue []Address
 
-func (f ResentBccField) FieldName() string {
-	return "Resent-Bcc"
+func (f *ResentBccFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ResentBccField) WriteValue(w *HeaderWriter) error {
+func (f ResentBccFieldValue) Write(w *DataWriter) error {
 	// The Resent-Bcc field can be empty
 
 	return w.WriteAddressList(f)
 }
 
 // Resent-Message-ID
-type ResentMessageIdField MessageId
+type ResentMessageIdFieldValue MessageId
 
-func (f ResentMessageIdField) FieldName() string {
-	return "Resent-Message-ID"
+func (f *ResentMessageIdFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ResentMessageIdField) WriteValue(w *HeaderWriter) error {
+func (f ResentMessageIdFieldValue) Write(w *DataWriter) error {
 	return w.WriteMessageId(MessageId(f))
 }
 
 // Date
-type DateField time.Time
+type DateFieldValue time.Time
 
-func (f DateField) FieldName() string {
-	return "Date"
+func (f *DateFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f DateField) WriteValue(w *HeaderWriter) error {
+func (f DateFieldValue) Write(w *DataWriter) error {
 	w.WriteDateTime(time.Time(f))
 	return nil
 }
 
 // From
-type FromField []*Mailbox
+type FromFieldValue []*Mailbox
 
-func (f FromField) FieldName() string {
-	return "From"
+func (f *FromFieldValue) Read(r *DataReader) error {
+	// TODO mailbox-list
+	return nil
 }
 
-func (f FromField) WriteValue(w *HeaderWriter) error {
+func (f FromFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty mailbox list")
 	}
@@ -181,25 +193,27 @@ func (f FromField) WriteValue(w *HeaderWriter) error {
 }
 
 // Sender
-type SenderField Mailbox
+type SenderFieldValue Mailbox
 
-func (f SenderField) FieldName() string {
-	return "Sender"
+func (f *SenderFieldValue) Read(r *DataReader) error {
+	// TODO mailbox
+	return nil
 }
 
-func (f SenderField) WriteValue(w *HeaderWriter) error {
+func (f SenderFieldValue) Write(w *DataWriter) error {
 	mailbox := Mailbox(f)
 	return w.WriteMailbox(&mailbox)
 }
 
 // Reply-To
-type ReplyToField []Address
+type ReplyToFieldValue []Address
 
-func (f ReplyToField) FieldName() string {
-	return "Reply-To"
+func (f *ReplyToFieldValue) Read(r *DataReader) error {
+	// TODO address-list
+	return nil
 }
 
-func (f ReplyToField) WriteValue(w *HeaderWriter) error {
+func (f ReplyToFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
@@ -208,13 +222,14 @@ func (f ReplyToField) WriteValue(w *HeaderWriter) error {
 }
 
 // To
-type ToField []Address
+type ToFieldValue []Address
 
-func (f ToField) FieldName() string {
-	return "To"
+func (f *ToFieldValue) Read(r *DataReader) error {
+	// TODO address-list
+	return nil
 }
 
-func (f ToField) WriteValue(w *HeaderWriter) error {
+func (f ToFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
@@ -223,13 +238,14 @@ func (f ToField) WriteValue(w *HeaderWriter) error {
 }
 
 // Cc
-type CcField []Address
+type CcFieldValue []Address
 
-func (f CcField) FieldName() string {
-	return "Cc"
+func (f *CcFieldValue) Read(r *DataReader) error {
+	// TODO address-list
+	return nil
 }
 
-func (f CcField) WriteValue(w *HeaderWriter) error {
+func (f CcFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
@@ -238,37 +254,39 @@ func (f CcField) WriteValue(w *HeaderWriter) error {
 }
 
 // Bcc
-type BccField []Address
+type BccFieldValue []Address
 
-func (f BccField) FieldName() string {
-	return "Bcc"
+func (f *BccFieldValue) Read(r *DataReader) error {
+	// TODO address-list
+	return nil
 }
 
-func (f BccField) WriteValue(w *HeaderWriter) error {
+func (f BccFieldValue) Write(w *DataWriter) error {
 	// The Bcc field can be empty
-
 	return w.WriteAddressList(f)
 }
 
 // Message-ID
-type MessageIdField MessageId
+type MessageIdFieldValue MessageId
 
-func (f MessageIdField) FieldName() string {
-	return "Message-ID"
+func (f *MessageIdFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f MessageIdField) WriteValue(w *HeaderWriter) error {
+func (f MessageIdFieldValue) Write(w *DataWriter) error {
 	return w.WriteMessageId(MessageId(f))
 }
 
 // In-Reply-To
-type InReplyToField []MessageId
+type InReplyToFieldValue []MessageId
 
-func (f InReplyToField) FieldName() string {
-	return "In-Reply-To"
+func (f *InReplyToFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f InReplyToField) WriteValue(w *HeaderWriter) error {
+func (f InReplyToFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty message id list")
 	}
@@ -277,13 +295,14 @@ func (f InReplyToField) WriteValue(w *HeaderWriter) error {
 }
 
 // References
-type ReferencesField []MessageId
+type ReferencesFieldValue []MessageId
 
-func (f ReferencesField) FieldName() string {
-	return "References"
+func (f *ReferencesFieldValue) Read(r *DataReader) error {
+	// TODO
+	return nil
 }
 
-func (f ReferencesField) WriteValue(w *HeaderWriter) error {
+func (f ReferencesFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty message id list")
 	}
@@ -292,36 +311,61 @@ func (f ReferencesField) WriteValue(w *HeaderWriter) error {
 }
 
 // Subject
-type SubjectField string
+type SubjectFieldValue string
 
-func (f SubjectField) FieldName() string {
-	return "Subject"
+func (f SubjectFieldValue) String() string {
+	return fmt.Sprintf("%q", string(f))
 }
 
-func (f SubjectField) WriteValue(w *HeaderWriter) error {
+func (f *SubjectFieldValue) Read(r *DataReader) error {
+	value, err := r.ReadUnstructured()
+	if err != nil {
+		return err
+	}
+
+	*f = SubjectFieldValue(value)
+	return nil
+}
+
+func (f SubjectFieldValue) Write(w *DataWriter) error {
 	w.WriteUnstructured(string(f))
 	return nil
 }
 
 // Comments
-type CommentsField string
+type CommentsFieldValue string
 
-func (f CommentsField) FieldName() string {
-	return "Comments"
+func (f CommentsFieldValue) String() string {
+	return fmt.Sprintf("%q", string(f))
 }
 
-func (f CommentsField) WriteValue(w *HeaderWriter) error {
+func (f *CommentsFieldValue) Read(r *DataReader) error {
+	value, err := r.ReadUnstructured()
+	if err != nil {
+		return err
+	}
+
+	*f = CommentsFieldValue(value)
+	return nil
+}
+
+func (f CommentsFieldValue) Write(w *DataWriter) error {
 	w.WriteUnstructured(string(f))
 	return nil
 }
 
-type KeywordsField []string
+// Keywords
+type KeywordsFieldValue []string
 
-func (f KeywordsField) FieldName() string {
-	return "Keywords"
+func (f *KeywordsFieldValue) Read(r *DataReader) error {
+	// TODO phrase *("," phrase)
+	//
+	// With obsolete syntax, some phrases can be empty and should probably be
+	// removed.
+	return nil
 }
 
-func (f KeywordsField) WriteValue(w *HeaderWriter) error {
+func (f KeywordsFieldValue) Write(w *DataWriter) error {
 	if len(f) == 0 {
 		return fmt.Errorf("invalid empty phrase list")
 	}
@@ -330,16 +374,23 @@ func (f KeywordsField) WriteValue(w *HeaderWriter) error {
 }
 
 // Optional fields
-type OptionalField struct {
-	Name  string
-	Value string
+type OptionalFieldValue string
+
+func (f OptionalFieldValue) String() string {
+	return fmt.Sprintf("%q", string(f))
 }
 
-func (f OptionalField) FieldName() string {
-	return f.Name
+func (f *OptionalFieldValue) Read(r *DataReader) error {
+	value, err := r.ReadUnstructured()
+	if err != nil {
+		return err
+	}
+
+	*f = OptionalFieldValue(value)
+	return nil
 }
 
-func (f OptionalField) WriteValue(w *HeaderWriter) error {
-	w.WriteUnstructured(f.Value)
+func (f OptionalFieldValue) Write(w *DataWriter) error {
+	w.WriteUnstructured(string(f))
 	return nil
 }
