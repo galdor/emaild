@@ -13,6 +13,18 @@ func IsWSP(c byte) bool {
 	return c == ' ' || c == '\t'
 }
 
+func IsSpaceSeparator(c byte) bool {
+	return IsWSP(c) || c == '\r'
+}
+
+func IsAlphaChar(c byte) bool {
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z'
+}
+
+func IsDigitChar(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
 func IsFieldChar(c byte) bool {
 	// RFC 5322 3.6.8. Optional Fields
 

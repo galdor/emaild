@@ -16,7 +16,7 @@ type Field struct {
 }
 
 func (f *Field) String() string {
-	return fmt.Sprintf("#<field %q %v>", f.Name, f.Value)
+	return fmt.Sprintf("#<field %s %v>", f.Name, f.Value)
 }
 
 type FieldValue interface {
@@ -26,14 +26,46 @@ type FieldValue interface {
 
 type Address interface{} // Mailbox or Group
 
-type AddressSpecification struct {
+type Addresses []Address
+
+func (addrs Addresses) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteAddressList(addrs)
+		return nil
+	})
+}
+
+type SpecificAddress struct {
 	LocalPart string
 	Domain    string
 }
 
+func (spec SpecificAddress) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteSpecificAddress(spec)
+		return nil
+	})
+}
+
 type Mailbox struct {
-	AddressSpecification
+	SpecificAddress
 	DisplayName string // optional
+}
+
+type Mailboxes []*Mailbox
+
+func (mb Mailbox) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteMailbox(&mb)
+		return nil
+	})
+}
+
+func (mbs Mailboxes) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteMailboxList(mbs)
+		return nil
+	})
 }
 
 type Group struct {
@@ -41,9 +73,30 @@ type Group struct {
 	Mailboxes   []*Mailbox
 }
 
+func (g Group) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteGroup(&g)
+		return nil
+	})
+}
+
 type MessageId struct {
 	Left  string
 	Right string
 }
 
-type ReceivedToken interface{} // string or AddressSpecification
+type MessageIds []MessageId
+
+func (id MessageId) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteMessageId(id)
+		return nil
+	})
+}
+
+func (ids MessageIds) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteMessageIdList(ids)
+		return nil
+	})
+}

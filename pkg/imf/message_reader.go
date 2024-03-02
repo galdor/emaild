@@ -175,10 +175,9 @@ func (r *MessageReader) maybeProcessLine() error {
 		return err
 	}
 
-	// TODO Uncomment once parsing has been implemented for all fields
-	// if !rr.Empty() {
-	// 	return fmt.Errorf("invalid trailing data for field %q", name)
-	// }
+	if !rr.Empty() {
+		return fmt.Errorf("invalid trailing data for field %q", field.Name)
+	}
 
 	r.msg.Header = append(r.msg.Header, &field)
 

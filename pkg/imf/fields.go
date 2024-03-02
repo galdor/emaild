@@ -1,27 +1,42 @@
 package imf
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"time"
-
-	"github.com/galdor/emaild/pkg/utils"
 )
 
 // RFC 5322 3.6. FieldValue Definitions
 
 // Return-Path
-type ReturnPathFieldValue AddressSpecification
+type ReturnPathFieldValue struct {
+	Address *SpecificAddress
+}
 
-func (f *ReturnPathFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v *ReturnPathFieldValue) String() string {
+	if v.Address == nil {
+		return "<nil>"
+	}
+
+	return fmt.Sprintf("%v", v.Address)
+}
+
+func (v *ReturnPathFieldValue) Read(r *DataReader) error {
+	spec, err := r.ReadAngleAddress(true)
+	if err != nil {
+		return err
+	}
+
+	v.Address = spec
 	return nil
 }
 
-func (f ReturnPathFieldValue) Write(w *DataWriter) error {
+func (v ReturnPathFieldValue) Write(w *DataWriter) error {
 	w.WriteRune('<')
 
-	if f.LocalPart == "" && f.Domain == "" {
-		w.WriteAddressSpecification(AddressSpecification(f))
+	if v.Address != nil {
+		w.WriteSpecificAddress(*v.Address)
 	}
 
 	w.WriteRune('>')
@@ -31,366 +46,545 @@ func (f ReturnPathFieldValue) Write(w *DataWriter) error {
 
 // Received
 type ReceivedFieldValue struct {
-	Tokens []ReceivedToken
+	Tokens string // [1]
 	Date   time.Time
+
+	// [1] We do not currently parse individual tokens due to the brain damaged
+	// specification indicating that each token is either a word, an angle
+	// address, a specific address or a domain. Good luck differentiating those.
 }
 
-func (f *ReceivedFieldValue) Read(r *DataReader) error {
-	// TODO
-	return nil
+func (v *ReceivedFieldValue) String() string {
+	return fmt.Sprintf("%s", v.Date.Format(time.RFC3339))
 }
 
-func (f ReceivedFieldValue) Write(w *DataWriter) error {
-	for i, token := range f.Tokens {
-		if i > 0 {
-			w.WriteRune(' ')
-		}
+func (v *ReceivedFieldValue) Read(r *DataReader) error {
+	// Careful, ';' can be part of one or more tokens since they can be words.
+	// We look for it starting from the end of the field since date-time
+	// elements cannot contain it.
 
-		switch value := token.(type) {
-		case string:
-			w.WriteString(value)
-		case AddressSpecification:
-			w.WriteAddressSpecification(value)
-		default:
-			utils.Panicf("unhandled received token %#v (%T)", token, token)
-		}
+	r2 := NewDataReader(r.ReadFromChar(';'))
+
+	if err := r2.SkipCFWS(); err != nil {
+		return err
 	}
 
-	w.WriteRune(';')
+	if r2.Empty() {
+		return fmt.Errorf("missing or empty datetime string")
+	}
 
-	w.WriteDateTime(f.Date)
+	date, err := r2.ReadDateTime()
+	if err != nil {
+		return fmt.Errorf("invalid datetime: %w", err)
+	}
+
+	v.Tokens = string(r.ReadAll())
+	v.Date = *date
 
 	return nil
+}
+
+func (v ReceivedFieldValue) Write(w *DataWriter) error {
+	return errors.New("not implemented")
 }
 
 // Resent-Date
 type ResentDateFieldValue time.Time
 
-func (f *ResentDateFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v *ResentDateFieldValue) String() string {
+	return fmt.Sprintf("%s", time.Time(*v).Format(time.RFC3339))
+}
+
+func (v *ResentDateFieldValue) Read(r *DataReader) error {
+	date, err := r.ReadDateTime()
+	if err != nil {
+		return fmt.Errorf("invalid datetime: %w", err)
+	}
+
+	*v = ResentDateFieldValue(*date)
 	return nil
 }
 
-func (f ResentDateFieldValue) Write(w *DataWriter) error {
-	w.WriteDateTime(time.Time(f))
+func (v ResentDateFieldValue) Write(w *DataWriter) error {
+	w.WriteDateTime(time.Time(v))
 	return nil
 }
 
 // Resent-From
-type ResentFromFieldValue []*Mailbox
+type ResentFromFieldValue Mailboxes
 
-func (f *ResentFromFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v ResentFromFieldValue) String() string {
+	return fmt.Sprintf("%v", Mailboxes(v))
+}
+
+func (v *ResentFromFieldValue) Read(r *DataReader) error {
+	mailboxes, err := r.ReadMailboxList()
+	if err != nil {
+		return err
+	}
+
+	*v = ResentFromFieldValue(mailboxes)
 	return nil
 }
 
-func (f ResentFromFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v ResentFromFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty mailbox list")
 	}
 
-	return w.WriteMailboxList(f)
+	return w.WriteMailboxList(Mailboxes(v))
 }
 
 // Resent-Sender
 type ResentSenderFieldValue Mailbox
 
-func (f *ResentSenderFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v ResentSenderFieldValue) String() string {
+	return fmt.Sprintf("%v", Mailbox(v))
+}
+
+func (v *ResentSenderFieldValue) Read(r *DataReader) error {
+	mb, err := r.ReadMailbox()
+	if err != nil {
+		return err
+	}
+
+	*v = ResentSenderFieldValue(*mb)
 	return nil
 }
 
-func (f ResentSenderFieldValue) Write(w *DataWriter) error {
-	mailbox := Mailbox(f)
+func (v ResentSenderFieldValue) Write(w *DataWriter) error {
+	mailbox := Mailbox(v)
 	return w.WriteMailbox(&mailbox)
 }
 
 // Resent-To
-type ResentToFieldValue []Address
+type ResentToFieldValue Addresses
 
-func (f *ResentToFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v ResentToFieldValue) String() string {
+	return fmt.Sprintf("%v", Addresses(v))
+}
+
+func (v *ResentToFieldValue) Read(r *DataReader) error {
+	addrs, err := r.ReadAddressList(false)
+	if err != nil {
+		return err
+	}
+
+	*v = ResentToFieldValue(addrs)
 	return nil
 }
 
-func (f ResentToFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v ResentToFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid address list")
 	}
 
-	return w.WriteAddressList(f)
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Resent-Cc
-type ResentCcFieldValue []Address
+type ResentCcFieldValue Addresses
 
-func (f *ResentCcFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v ResentCcFieldValue) String() string {
+	return fmt.Sprintf("%v", Addresses(v))
+}
+
+func (v *ResentCcFieldValue) Read(r *DataReader) error {
+	addrs, err := r.ReadAddressList(false)
+	if err != nil {
+		return err
+	}
+
+	*v = ResentCcFieldValue(addrs)
 	return nil
 }
 
-func (f ResentCcFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v ResentCcFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid address list")
 	}
 
-	return w.WriteAddressList(f)
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Resent-Bcc
-type ResentBccFieldValue []Address
+type ResentBccFieldValue Addresses
 
-func (f *ResentBccFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v ResentBccFieldValue) String() string {
+	return fmt.Sprintf("%v", Addresses(v))
+}
+
+func (v *ResentBccFieldValue) Read(r *DataReader) error {
+	addrs, err := r.ReadAddressList(true)
+	if err != nil {
+		return err
+	}
+
+	*v = ResentBccFieldValue(Addresses(addrs))
 	return nil
 }
 
-func (f ResentBccFieldValue) Write(w *DataWriter) error {
+func (v ResentBccFieldValue) Write(w *DataWriter) error {
 	// The Resent-Bcc field can be empty
 
-	return w.WriteAddressList(f)
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Resent-Message-ID
 type ResentMessageIdFieldValue MessageId
 
-func (f *ResentMessageIdFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v ResentMessageIdFieldValue) String() string {
+	return fmt.Sprintf("%v", MessageId(v))
+}
+
+func (v *ResentMessageIdFieldValue) Read(r *DataReader) error {
+	id, err := r.ReadMessageId()
+	if err != nil {
+		return err
+	}
+
+	*v = ResentMessageIdFieldValue(*id)
 	return nil
 }
 
-func (f ResentMessageIdFieldValue) Write(w *DataWriter) error {
-	return w.WriteMessageId(MessageId(f))
+func (v ResentMessageIdFieldValue) Write(w *DataWriter) error {
+	return w.WriteMessageId(MessageId(v))
 }
 
 // Date
 type DateFieldValue time.Time
 
-func (f *DateFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v *DateFieldValue) String() string {
+	return fmt.Sprintf("%s", time.Time(*v).Format(time.RFC3339))
+}
+
+func (v *DateFieldValue) Read(r *DataReader) error {
+	date, err := r.ReadDateTime()
+	if err != nil {
+		return fmt.Errorf("invalid datetime: %w", err)
+	}
+
+	*v = DateFieldValue(*date)
 	return nil
 }
 
-func (f DateFieldValue) Write(w *DataWriter) error {
-	w.WriteDateTime(time.Time(f))
+func (v DateFieldValue) Write(w *DataWriter) error {
+	w.WriteDateTime(time.Time(v))
 	return nil
 }
 
 // From
-type FromFieldValue []*Mailbox
+type FromFieldValue Mailboxes
 
-func (f *FromFieldValue) Read(r *DataReader) error {
-	// TODO mailbox-list
+func (v FromFieldValue) String() string {
+	return fmt.Sprintf("%v", Mailboxes(v))
+}
+
+func (v *FromFieldValue) Read(r *DataReader) error {
+	mailboxes, err := r.ReadMailboxList()
+	if err != nil {
+		return err
+	}
+
+	*v = FromFieldValue(mailboxes)
 	return nil
 }
 
-func (f FromFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v FromFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty mailbox list")
 	}
 
-	return w.WriteMailboxList(f)
+	return w.WriteMailboxList(Mailboxes(v))
 }
 
 // Sender
 type SenderFieldValue Mailbox
 
-func (f *SenderFieldValue) Read(r *DataReader) error {
-	// TODO mailbox
+func (v SenderFieldValue) String() string {
+	return fmt.Sprintf("%v", Mailbox(v))
+}
+
+func (v *SenderFieldValue) Read(r *DataReader) error {
+	mb, err := r.ReadMailbox()
+	if err != nil {
+		return err
+	}
+
+	*v = SenderFieldValue(*mb)
 	return nil
 }
 
-func (f SenderFieldValue) Write(w *DataWriter) error {
-	mailbox := Mailbox(f)
+func (v SenderFieldValue) Write(w *DataWriter) error {
+	mailbox := Mailbox(v)
 	return w.WriteMailbox(&mailbox)
 }
 
 // Reply-To
-type ReplyToFieldValue []Address
+type ReplyToFieldValue Addresses
 
-func (f *ReplyToFieldValue) Read(r *DataReader) error {
-	// TODO address-list
+func (v ReplyToFieldValue) String() string {
+	return fmt.Sprintf("%v", Addresses(v))
+}
+
+func (v *ReplyToFieldValue) Read(r *DataReader) error {
+	addrs, err := r.ReadAddressList(false)
+	if err != nil {
+		return err
+	}
+
+	*v = ReplyToFieldValue(addrs)
 	return nil
 }
 
-func (f ReplyToFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v ReplyToFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(f)
+	return w.WriteAddressList(Addresses(v))
 }
 
 // To
-type ToFieldValue []Address
+type ToFieldValue Addresses
 
-func (f *ToFieldValue) Read(r *DataReader) error {
-	// TODO address-list
+func (v ToFieldValue) String() string {
+	return fmt.Sprintf("%v", Addresses(v))
+}
+
+func (v *ToFieldValue) Read(r *DataReader) error {
+	addrs, err := r.ReadAddressList(false)
+	if err != nil {
+		return err
+	}
+
+	*v = ToFieldValue(addrs)
 	return nil
 }
 
-func (f ToFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v ToFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(f)
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Cc
-type CcFieldValue []Address
+type CcFieldValue Addresses
 
-func (f *CcFieldValue) Read(r *DataReader) error {
-	// TODO address-list
+func (v CcFieldValue) String() string {
+	return fmt.Sprintf("%v", Addresses(v))
+}
+
+func (v *CcFieldValue) Read(r *DataReader) error {
+	addrs, err := r.ReadAddressList(false)
+	if err != nil {
+		return err
+	}
+
+	*v = CcFieldValue(addrs)
 	return nil
 }
 
-func (f CcFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v CcFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(f)
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Bcc
-type BccFieldValue []Address
+type BccFieldValue Addresses
 
-func (f *BccFieldValue) Read(r *DataReader) error {
-	// TODO address-list
+func (v BccFieldValue) String() string {
+	return fmt.Sprintf("%v", Addresses(v))
+}
+
+func (v *BccFieldValue) Read(r *DataReader) error {
+	addrs, err := r.ReadAddressList(true)
+	if err != nil {
+		return err
+	}
+
+	*v = BccFieldValue(addrs)
 	return nil
 }
 
-func (f BccFieldValue) Write(w *DataWriter) error {
+func (v BccFieldValue) Write(w *DataWriter) error {
 	// The Bcc field can be empty
-	return w.WriteAddressList(f)
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Message-ID
 type MessageIdFieldValue MessageId
 
-func (f *MessageIdFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v MessageIdFieldValue) String() string {
+	return fmt.Sprintf("%v", MessageId(v))
+}
+
+func (v *MessageIdFieldValue) Read(r *DataReader) error {
+	id, err := r.ReadMessageId()
+	if err != nil {
+		return err
+	}
+
+	*v = MessageIdFieldValue(*id)
 	return nil
 }
 
-func (f MessageIdFieldValue) Write(w *DataWriter) error {
-	return w.WriteMessageId(MessageId(f))
+func (v MessageIdFieldValue) Write(w *DataWriter) error {
+	return w.WriteMessageId(MessageId(v))
 }
 
 // In-Reply-To
-type InReplyToFieldValue []MessageId
+type InReplyToFieldValue MessageIds
 
-func (f *InReplyToFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v InReplyToFieldValue) String() string {
+	return fmt.Sprintf("%v", MessageIds(v))
+}
+
+func (v *InReplyToFieldValue) Read(r *DataReader) error {
+	ids, err := r.ReadMessageIdList()
+	if err != nil {
+		return err
+	}
+
+	*v = InReplyToFieldValue(ids)
 	return nil
 }
 
-func (f InReplyToFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v InReplyToFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty message id list")
 	}
 
-	return w.WriteMessageIdList(f)
+	return w.WriteMessageIdList(MessageIds(v))
 }
 
 // References
-type ReferencesFieldValue []MessageId
+type ReferencesFieldValue MessageIds
 
-func (f *ReferencesFieldValue) Read(r *DataReader) error {
-	// TODO
+func (v ReferencesFieldValue) String() string {
+	return fmt.Sprintf("%v", MessageIds(v))
+}
+
+func (v *ReferencesFieldValue) Read(r *DataReader) error {
+	ids, err := r.ReadMessageIdList()
+	if err != nil {
+		return err
+	}
+
+	*v = ReferencesFieldValue(ids)
 	return nil
 }
 
-func (f ReferencesFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v ReferencesFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty message id list")
 	}
 
-	return w.WriteMessageIdList(f)
+	return w.WriteMessageIdList(MessageIds(v))
 }
 
 // Subject
 type SubjectFieldValue string
 
-func (f SubjectFieldValue) String() string {
-	return fmt.Sprintf("%q", string(f))
+func (v SubjectFieldValue) String() string {
+	return fmt.Sprintf("%q", string(v))
 }
 
-func (f *SubjectFieldValue) Read(r *DataReader) error {
+func (v *SubjectFieldValue) Read(r *DataReader) error {
 	value, err := r.ReadUnstructured()
 	if err != nil {
 		return err
 	}
 
-	*f = SubjectFieldValue(value)
+	*v = SubjectFieldValue(value)
 	return nil
 }
 
-func (f SubjectFieldValue) Write(w *DataWriter) error {
-	w.WriteUnstructured(string(f))
+func (v SubjectFieldValue) Write(w *DataWriter) error {
+	w.WriteUnstructured(string(v))
 	return nil
 }
 
 // Comments
 type CommentsFieldValue string
 
-func (f CommentsFieldValue) String() string {
-	return fmt.Sprintf("%q", string(f))
+func (v CommentsFieldValue) String() string {
+	return fmt.Sprintf("%q", string(v))
 }
 
-func (f *CommentsFieldValue) Read(r *DataReader) error {
+func (v *CommentsFieldValue) Read(r *DataReader) error {
 	value, err := r.ReadUnstructured()
 	if err != nil {
 		return err
 	}
 
-	*f = CommentsFieldValue(value)
+	*v = CommentsFieldValue(value)
 	return nil
 }
 
-func (f CommentsFieldValue) Write(w *DataWriter) error {
-	w.WriteUnstructured(string(f))
+func (v CommentsFieldValue) Write(w *DataWriter) error {
+	w.WriteUnstructured(string(v))
 	return nil
 }
 
 // Keywords
 type KeywordsFieldValue []string
 
-func (f *KeywordsFieldValue) Read(r *DataReader) error {
-	// TODO phrase *("," phrase)
-	//
-	// With obsolete syntax, some phrases can be empty and should probably be
-	// removed.
+func (v KeywordsFieldValue) String() string {
+	var buf bytes.Buffer
+
+	for i, phrase := range v {
+		if i > 0 {
+			buf.WriteString(", ")
+		}
+
+		fmt.Fprintf(&buf, "%q", phrase)
+	}
+
+	return buf.String()
+}
+
+func (v *KeywordsFieldValue) Read(r *DataReader) error {
+	phrases, err := r.ReadPhraseList()
+	if err != nil {
+		return err
+	}
+
+	*v = phrases
 	return nil
 }
 
-func (f KeywordsFieldValue) Write(w *DataWriter) error {
-	if len(f) == 0 {
+func (v KeywordsFieldValue) Write(w *DataWriter) error {
+	if len(v) == 0 {
 		return fmt.Errorf("invalid empty phrase list")
 	}
 
-	return w.WritePhraseList(f)
+	return w.WritePhraseList(v)
 }
 
 // Optional fields
 type OptionalFieldValue string
 
-func (f OptionalFieldValue) String() string {
-	return fmt.Sprintf("%q", string(f))
+func (v OptionalFieldValue) String() string {
+	return fmt.Sprintf("%q", string(v))
 }
 
-func (f *OptionalFieldValue) Read(r *DataReader) error {
+func (v *OptionalFieldValue) Read(r *DataReader) error {
 	value, err := r.ReadUnstructured()
 	if err != nil {
 		return err
 	}
 
-	*f = OptionalFieldValue(value)
+	*v = OptionalFieldValue(value)
 	return nil
 }
 
-func (f OptionalFieldValue) Write(w *DataWriter) error {
-	w.WriteUnstructured(string(f))
+func (v OptionalFieldValue) Write(w *DataWriter) error {
+	w.WriteUnstructured(string(v))
 	return nil
 }

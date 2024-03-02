@@ -21,6 +21,16 @@ type DataWriter struct {
 	lineLength int
 }
 
+func MustWriteInlineData(fn func(*DataWriter) error) string {
+	w := NewDataWriter(0)
+
+	if err := fn(w); err != nil {
+		utils.Panicf("cannot write data: %w", err)
+	}
+
+	return w.buf.String()
+}
+
 func (w *DataWriter) Bytes() []byte {
 	return w.buf.Bytes()
 }
@@ -130,6 +140,16 @@ func (w *DataWriter) WriteDotAtomOrQuotedString(s string) error {
 	return w.WriteQuotedString(s)
 }
 
+func (w *DataWriter) WriteDomain(domain string) {
+	if IsDotAtom(domain) {
+		w.WriteString(domain)
+	} else {
+		w.WriteRune('[')
+		w.WriteString(domain)
+		w.WriteRune(']')
+	}
+}
+
 func (w *DataWriter) WritePhrase(phrase string) error {
 	// Phrases are defined as a list of at least one word. The correct
 	// representation would be []string, but it is inconvenient. So we extract
@@ -179,15 +199,15 @@ func (w *DataWriter) WriteMessageId(id MessageId) error {
 	// RFC 5322 3.6.4. Identification Fields
 
 	w.WriteRune('<')
-	w.WriteString(id.Left)
+	w.WriteDotAtomOrQuotedString(id.Left)
 	w.WriteRune('@')
-	w.WriteString(id.Right)
+	w.WriteDomain(id.Right)
 	w.WriteRune('>')
 
 	return nil
 }
 
-func (w *DataWriter) WriteMessageIdList(ids []MessageId) error {
+func (w *DataWriter) WriteMessageIdList(ids MessageIds) error {
 	for i, id := range ids {
 		if i > 0 {
 			w.WriteRune(' ')
@@ -213,7 +233,7 @@ func (w *DataWriter) WriteAddress(addr Address) error {
 	return nil // the Go compiler still cannot do basic flow analysis...
 }
 
-func (w *DataWriter) WriteAddressList(addrs []Address) error {
+func (w *DataWriter) WriteAddressList(addrs Addresses) error {
 	for i, addr := range addrs {
 		if i > 0 {
 			w.WriteString(", ")
@@ -229,16 +249,16 @@ func (w *DataWriter) WriteAddressList(addrs []Address) error {
 
 func (w *DataWriter) WriteMailbox(mailbox *Mailbox) error {
 	if mailbox.DisplayName == "" {
-		return w.WriteAddressSpecification(mailbox.AddressSpecification)
+		return w.WriteSpecificAddress(mailbox.SpecificAddress)
 	}
 
-	if err := w.WritePhrase(mailbox.DisplayName); err != nil {
+	if err := w.WriteQuotedString(mailbox.DisplayName); err != nil {
 		return fmt.Errorf("invalid display name: %w", err)
 	}
 	w.WriteRune(' ')
 
 	w.WriteRune('<')
-	err := w.WriteAddressSpecification(mailbox.AddressSpecification)
+	err := w.WriteSpecificAddress(mailbox.SpecificAddress)
 	if err != nil {
 		return err
 	}
@@ -247,7 +267,7 @@ func (w *DataWriter) WriteMailbox(mailbox *Mailbox) error {
 	return nil
 }
 
-func (w *DataWriter) WriteMailboxList(mailboxes []*Mailbox) error {
+func (w *DataWriter) WriteMailboxList(mailboxes Mailboxes) error {
 	for i, mailbox := range mailboxes {
 		if i > 0 {
 			w.WriteString(", ")
@@ -261,7 +281,7 @@ func (w *DataWriter) WriteMailboxList(mailboxes []*Mailbox) error {
 	return nil
 }
 
-func (w *DataWriter) WriteAddressSpecification(spec AddressSpecification) error {
+func (w *DataWriter) WriteSpecificAddress(spec SpecificAddress) error {
 	if err := w.WriteDotAtomOrQuotedString(spec.LocalPart); err != nil {
 		return fmt.Errorf("invalid local part: %w", err)
 	}
