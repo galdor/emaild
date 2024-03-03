@@ -111,50 +111,55 @@ func (v ResentDateFieldValue) Write(w *DataWriter) error {
 }
 
 // Resent-From
-type ResentFromFieldValue Mailboxes
+//
+// Support addresses and not just mailboxes (RFC 6854).
+type ResentFromFieldValue Addresses
 
 func (v ResentFromFieldValue) String() string {
-	return fmt.Sprintf("%v", Mailboxes(v))
+	return fmt.Sprintf("%v", Addresses(v))
 }
 
 func (v *ResentFromFieldValue) Read(r *DataReader) error {
-	mailboxes, err := r.ReadMailboxList()
+	addrs, err := r.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
 
-	*v = ResentFromFieldValue(mailboxes)
+	*v = ResentFromFieldValue(addrs)
 	return nil
 }
 
 func (v ResentFromFieldValue) Write(w *DataWriter) error {
 	if len(v) == 0 {
-		return fmt.Errorf("invalid empty mailbox list")
+		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteMailboxList(Mailboxes(v))
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Resent-Sender
-type ResentSenderFieldValue Mailbox
+//
+// Can be an address and not just a mailbox (RFC 6854).
+type ResentSenderFieldValue struct {
+	Address Address
+}
 
 func (v ResentSenderFieldValue) String() string {
-	return fmt.Sprintf("%v", Mailbox(v))
+	return fmt.Sprintf("%v", v.Address)
 }
 
 func (v *ResentSenderFieldValue) Read(r *DataReader) error {
-	mb, err := r.ReadMailbox()
+	addr, err := r.ReadAddress()
 	if err != nil {
 		return err
 	}
 
-	*v = ResentSenderFieldValue(*mb)
+	v.Address = addr
 	return nil
 }
 
 func (v ResentSenderFieldValue) Write(w *DataWriter) error {
-	mailbox := Mailbox(v)
-	return w.WriteMailbox(&mailbox)
+	return w.WriteAddress(v.Address)
 }
 
 // Resent-To
@@ -274,50 +279,55 @@ func (v DateFieldValue) Write(w *DataWriter) error {
 }
 
 // From
-type FromFieldValue Mailboxes
+//
+// Support addresses and not just mailboxes (RFC 6854).
+type FromFieldValue Addresses
 
 func (v FromFieldValue) String() string {
-	return fmt.Sprintf("%v", Mailboxes(v))
+	return fmt.Sprintf("%v", Addresses(v))
 }
 
 func (v *FromFieldValue) Read(r *DataReader) error {
-	mailboxes, err := r.ReadMailboxList()
+	addrs, err := r.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
 
-	*v = FromFieldValue(mailboxes)
+	*v = FromFieldValue(addrs)
 	return nil
 }
 
 func (v FromFieldValue) Write(w *DataWriter) error {
 	if len(v) == 0 {
-		return fmt.Errorf("invalid empty mailbox list")
+		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteMailboxList(Mailboxes(v))
+	return w.WriteAddressList(Addresses(v))
 }
 
 // Sender
-type SenderFieldValue Mailbox
+//
+// Can be an address and not just a mailbox (RFC 6854).
+type SenderFieldValue struct {
+	Address Address
+}
 
 func (v SenderFieldValue) String() string {
-	return fmt.Sprintf("%v", Mailbox(v))
+	return fmt.Sprintf("%v", v.Address)
 }
 
 func (v *SenderFieldValue) Read(r *DataReader) error {
-	mb, err := r.ReadMailbox()
+	addr, err := r.ReadAddress()
 	if err != nil {
 		return err
 	}
 
-	*v = SenderFieldValue(*mb)
+	v.Address = addr
 	return nil
 }
 
 func (v SenderFieldValue) Write(w *DataWriter) error {
-	mailbox := Mailbox(v)
-	return w.WriteMailbox(&mailbox)
+	return w.WriteAddress(v.Address)
 }
 
 // Reply-To
