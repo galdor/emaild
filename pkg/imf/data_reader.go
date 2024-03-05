@@ -2,7 +2,6 @@ package imf
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -93,12 +92,53 @@ func (r *DataReader) SkipCFWS() error {
 			continue
 		}
 
-		if r.buf[0] == '(' {
-			// TODO read/skip the comment and continue
-			return errors.New("unhandled comment")
+		if r.StartsWithByte('(') {
+			if err := r.SkipComment(0); err != nil {
+				return err
+			}
 		}
 
 		break
+	}
+
+	return nil
+}
+
+func (r *DataReader) SkipComment(depth int) error {
+	if depth > 20 {
+		return fmt.Errorf("too many nested comments")
+	}
+
+	r.SkipByte('(')
+
+	for {
+		if err := r.MaybeSkipFWS(); err != nil {
+			return err
+		}
+
+		if len(r.buf) == 0 {
+			return fmt.Errorf("truncated comment")
+		}
+
+		c := r.buf[0]
+
+		if c == '(' {
+			if err := r.SkipComment(depth + 1); err != nil {
+				return err
+			}
+		} else if c == ')' {
+			r.Skip(1)
+			break
+		} else if IsCommentChar(c) || IsWSP(c) {
+			r.Skip(1)
+		} else if c == '\\' {
+			if len(r.buf) == 1 {
+				return fmt.Errorf("truncated quoted pair")
+			}
+			r.Skip(2)
+		} else {
+			return fmt.Errorf("invalid character %s", utils.QuoteByte(r.buf[0]))
+		}
 	}
 
 	return nil
@@ -173,7 +213,8 @@ func (r *DataReader) ReadAtom() ([]byte, error) {
 	}
 
 	if !IsAtomChar(r.buf[0]) {
-		return nil, fmt.Errorf("invalid character 0x%x", r.buf[0])
+		return nil, fmt.Errorf("invalid character %s",
+			utils.QuoteByte(r.buf[0]))
 	}
 
 	atom := r.ReadWhile(IsAtomChar)
@@ -248,7 +289,7 @@ func (r *DataReader) ReadQuotedString() ([]byte, error) {
 	}
 
 	if escaped {
-		return nil, fmt.Errorf("truncated quoted-pair")
+		return nil, fmt.Errorf("truncated quoted pair")
 	}
 
 	if !r.SkipByte('"') {

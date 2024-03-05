@@ -9,12 +9,23 @@ var ErrInvalidUTF8String = errors.New("invalid utf-8 string")
 
 func IsWSP(c byte) bool {
 	// RFC 5234 B.1. Core Rules
-
 	return c == ' ' || c == '\t'
 }
 
 func IsSpaceSeparator(c byte) bool {
 	return IsWSP(c) || c == '\r'
+}
+
+func IsCommentChar(c byte) bool {
+	// RFC 5322 3.2.2. Folding White Space and Comments
+	return c >= 33 && c <= 39 || c >= 42 && c <= 91 || c >= 93 && c <= 126 ||
+		IsObsoleteCommentChar(c)
+}
+
+func IsObsoleteCommentChar(c byte) bool {
+	// RFC 5322 4.1 Miscellaneous Obsolete Tokens
+	return c >= 1 && c <= 8 || c >= 11 && c <= 12 || c >= 14 && c <= 31 ||
+		c == 127
 }
 
 func IsAlphaChar(c byte) bool {
@@ -27,7 +38,6 @@ func IsDigitChar(c byte) bool {
 
 func IsFieldChar(c byte) bool {
 	// RFC 5322 3.6.8. Optional Fields
-
 	return (c >= 33 && c <= 57) || (c >= 59 && c <= 126)
 }
 
