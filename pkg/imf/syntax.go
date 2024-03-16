@@ -76,3 +76,13 @@ func IsDotAtom(s string) bool {
 
 	return true
 }
+
+func CharRange(cmin, cmax byte) string {
+	chars := make([]byte, cmax-cmin+1)
+
+	for i := byte(0); i < byte(len(chars)); i++ {
+		chars[i] = cmin + i
+	}
+
+	return string(chars)
+}

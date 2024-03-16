@@ -81,6 +81,14 @@ func (r *MessageReader) Close() (*Message, error) {
 	return &r.msg, nil
 }
 
+func (r *MessageReader) ReadAll(data []byte) (*Message, error) {
+	if err := r.Read(data); err != nil {
+		return nil, err
+	}
+
+	return r.Close()
+}
+
 func (r *MessageReader) maybeProcessLine() error {
 	if len(r.line) == 0 {
 		return nil

@@ -59,37 +59,40 @@ func (r *DataReader) SkipByte(c byte) bool {
 }
 
 func (r *DataReader) MaybeSkipFWS() error {
-	if len(r.buf) == 0 {
-		return nil
-	}
+	for len(r.buf) > 0 {
+		if IsWSP(r.buf[0]) {
+			r.Skip(1)
+		} else if r.buf[0] == '\r' {
+			if len(r.buf) < 3 {
+				return fmt.Errorf("truncated fws sequence")
+			}
 
-	if r.buf[0] != '\r' {
-		return nil
-	}
+			if r.buf[1] != '\n' {
+				return fmt.Errorf("missing lf character after cr character")
+			}
 
-	if len(r.buf) < 3 {
-		return fmt.Errorf("truncated fws sequence")
-	}
+			if !IsWSP(r.buf[2]) {
+				return fmt.Errorf("invalid fws sequence: missing whitespace after " +
+					"crlf sequence")
+			}
 
-	if r.buf[1] != '\n' {
-		return fmt.Errorf("missing lf character after cr character")
+			r.Skip(3)
+		} else {
+			break
+		}
 	}
-
-	if !IsWSP(r.buf[2]) {
-		return fmt.Errorf("invalid fws sequence: missing whitespace after " +
-			"crlf sequence")
-	}
-
-	r.buf = r.buf[3:]
 
 	return nil
 }
 
 func (r *DataReader) SkipCFWS() error {
 	for len(r.buf) > 0 {
-		if IsWSP(r.buf[0]) || r.buf[0] == '\r' || r.buf[0] == '\n' {
-			r.buf = r.buf[1:]
-			continue
+		if !IsWSP(r.buf[0]) && r.buf[0] != '\r' {
+			break
+		}
+
+		if err := r.MaybeSkipFWS(); err != nil {
+			return err
 		}
 
 		if r.StartsWithByte('(') {
@@ -97,8 +100,6 @@ func (r *DataReader) SkipCFWS() error {
 				return err
 			}
 		}
-
-		break
 	}
 
 	return nil
@@ -223,13 +224,13 @@ func (r *DataReader) ReadAtom() ([]byte, error) {
 }
 
 func (r *DataReader) ReadDotAtom() ([]byte, error) {
-	if err := r.SkipCFWS(); err != nil {
-		return nil, err
-	}
-
-	var atom []byte
+	var atoms [][]byte
 
 	for {
+		if err := r.SkipCFWS(); err != nil {
+			return nil, err
+		}
+
 		if len(r.buf) == 0 {
 			return nil, fmt.Errorf("truncated value")
 		}
@@ -240,14 +241,18 @@ func (r *DataReader) ReadDotAtom() ([]byte, error) {
 		}
 
 		part := r.ReadWhile(IsAtomChar)
-		atom = append(atom, part...)
+		atoms = append(atoms, part)
+
+		if err := r.SkipCFWS(); err != nil {
+			return nil, err
+		}
 
 		if !r.SkipByte('.') {
 			break
 		}
 	}
 
-	return atom, nil
+	return bytes.Join(atoms, []byte{'.'}), nil
 }
 
 func (r *DataReader) ReadQuotedString() ([]byte, error) {
@@ -260,40 +265,30 @@ func (r *DataReader) ReadQuotedString() ([]byte, error) {
 	}
 
 	var value []byte
-	var escaped bool
 
 	for {
 		if err := r.MaybeSkipFWS(); err != nil {
 			return nil, err
 		}
 
-		if len(r.buf) == 0 || r.buf[0] == '"' {
+		if len(r.buf) == 0 {
+			return nil, fmt.Errorf("missing final '\"' character")
+		} else if r.buf[0] == '"' {
+			r.Skip(1)
 			break
 		} else if r.buf[0] == '\\' {
-			if escaped {
-				value = append(value, '\\')
-				escaped = false
-			} else {
-				escaped = true
+			if len(r.buf) < 2 {
+				return nil, fmt.Errorf("truncated quoted pair")
 			}
-		} else if escaped {
+
 			// RFC 5322 3.2.1. "Where any quoted-pair appears, it is to be
 			// interpreted as the character alone".
-			value = append(value, r.buf[0])
-			escaped = false
+			value = append(value, r.buf[1])
+			r.Skip(2)
 		} else {
 			value = append(value, r.buf[0])
+			r.Skip(1)
 		}
-
-		r.buf = r.buf[1:]
-	}
-
-	if escaped {
-		return nil, fmt.Errorf("truncated quoted pair")
-	}
-
-	if !r.SkipByte('"') {
-		return nil, fmt.Errorf("missing final '\"' character")
 	}
 
 	return value, nil
@@ -451,10 +446,6 @@ func (r *DataReader) ReadLocalPart() ([]byte, error) {
 		value = append(value, '.')
 	}
 
-	if len(value) == 0 {
-		return nil, fmt.Errorf("invalid empty value")
-	}
-
 	return value, nil
 }
 
@@ -467,7 +458,7 @@ func (r *DataReader) ReadDomainLiteral() ([]byte, error) {
 		return nil, fmt.Errorf("missing initial '[' character")
 	}
 
-	var domain []byte
+	domain := []byte{'['}
 
 	if r.StartsWithByte('"') {
 		value, err := r.ReadQuotedString()
@@ -508,6 +499,8 @@ func (r *DataReader) ReadDomainLiteral() ([]byte, error) {
 	if !r.SkipByte(']') {
 		return nil, fmt.Errorf("missing final ']' character")
 	}
+
+	domain = append(domain, ']')
 
 	return domain, nil
 }
@@ -580,8 +573,8 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 	}
 
 	if !r.SkipByte('<') {
-		return nil, fmt.Errorf("missing '<' character before address " +
-			"specification")
+		return nil, fmt.Errorf("missing '<' character before specific " +
+			"address")
 	}
 
 	if err := r.SkipCFWS(); err != nil {
@@ -601,7 +594,7 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 
 	spec, err := r.ReadSpecificAddress()
 	if err != nil {
-		return nil, fmt.Errorf("invalid address specification: %w", err)
+		return nil, fmt.Errorf("invalid specific address: %w", err)
 	}
 
 	if err := r.SkipCFWS(); err != nil {
@@ -609,8 +602,8 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 	}
 
 	if !r.SkipByte('>') {
-		return nil, fmt.Errorf("missing '>' character after address " +
-			"specification")
+		return nil, fmt.Errorf("missing '>' character after specific " +
+			"address")
 	}
 
 	return spec, nil

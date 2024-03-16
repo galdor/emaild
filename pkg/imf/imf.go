@@ -22,6 +22,9 @@ func (f *Field) String() string {
 type FieldValue interface {
 	Read(*DataReader) error
 	Write(*DataWriter) error
+
+	testGenerate(*TestMessageGenerator)
+	testCheck(*TestMessageGenerator, FieldValue)
 }
 
 type Address interface{} // Mailbox or Group

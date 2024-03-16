@@ -19,11 +19,7 @@ func cmdParseMessage(p *program.Program) {
 
 	r := imf.NewMessageReader()
 
-	if err := r.Read(data); err != nil {
-		p.Fatal("invalid message: %v", err)
-	}
-
-	msg, err := r.Close()
+	msg, err := r.ReadAll(data)
 	if err != nil {
 		p.Fatal("invalid message: %v", err)
 	}

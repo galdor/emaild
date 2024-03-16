@@ -44,6 +44,34 @@ func (v ReturnPathFieldValue) Write(w *DataWriter) error {
 	return nil
 }
 
+func (v *ReturnPathFieldValue) testGenerate(g *TestMessageGenerator) {
+	if g.maybe(0.25) {
+		g.generateCFWS()
+	}
+
+	g.writeString("<")
+
+	if g.maybe(0.1) {
+		v.Address = nil
+
+		if g.maybe(0.25) {
+			g.generateCFWS()
+		}
+	} else {
+		v.Address = g.generateSpecificAddress()
+	}
+
+	g.writeString(">")
+
+	if g.maybe(0.25) {
+		g.generateCFWS()
+	}
+}
+
+func (v ReturnPathFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	g.checkSpecificAddress(ev.(*ReturnPathFieldValue).Address, v.Address)
+}
+
 // Received
 type ReceivedFieldValue struct {
 	Tokens string // [1]
@@ -88,6 +116,16 @@ func (v ReceivedFieldValue) Write(w *DataWriter) error {
 	return errors.New("not implemented")
 }
 
+func (v *ReceivedFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ReceivedFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Resent-Date
 type ResentDateFieldValue time.Time
 
@@ -108,6 +146,16 @@ func (v *ResentDateFieldValue) Read(r *DataReader) error {
 func (v ResentDateFieldValue) Write(w *DataWriter) error {
 	w.WriteDateTime(time.Time(v))
 	return nil
+}
+
+func (v *ResentDateFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ResentDateFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }
 
 // Resent-From
@@ -137,9 +185,20 @@ func (v ResentFromFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddressList(Addresses(v))
 }
 
+func (v *ResentFromFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ResentFromFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Resent-Sender
 //
-// Can be an address and not just a mailbox (RFC 6854).
+// See RFC 6854, Resent-Sender fields can contain addresses and not just
+// mailboxes.
 type ResentSenderFieldValue struct {
 	Address Address
 }
@@ -160,6 +219,16 @@ func (v *ResentSenderFieldValue) Read(r *DataReader) error {
 
 func (v ResentSenderFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddress(v.Address)
+}
+
+func (v *ResentSenderFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ResentSenderFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }
 
 // Resent-To
@@ -187,6 +256,16 @@ func (v ResentToFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddressList(Addresses(v))
 }
 
+func (v *ResentToFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ResentToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Resent-Cc
 type ResentCcFieldValue Addresses
 
@@ -212,6 +291,16 @@ func (v ResentCcFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddressList(Addresses(v))
 }
 
+func (v *ResentCcFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ResentCcFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Resent-Bcc
 type ResentBccFieldValue Addresses
 
@@ -235,6 +324,16 @@ func (v ResentBccFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddressList(Addresses(v))
 }
 
+func (v *ResentBccFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ResentBccFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Resent-Message-ID
 type ResentMessageIdFieldValue MessageId
 
@@ -254,6 +353,16 @@ func (v *ResentMessageIdFieldValue) Read(r *DataReader) error {
 
 func (v ResentMessageIdFieldValue) Write(w *DataWriter) error {
 	return w.WriteMessageId(MessageId(v))
+}
+
+func (v *ResentMessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ResentMessageIdFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }
 
 // Date
@@ -278,9 +387,19 @@ func (v DateFieldValue) Write(w *DataWriter) error {
 	return nil
 }
 
+func (v *DateFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v DateFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // From
 //
-// Support addresses and not just mailboxes (RFC 6854).
+// See RFC 6854, From fields can contain addresses and not just mailboxes.
 type FromFieldValue Addresses
 
 func (v FromFieldValue) String() string {
@@ -303,6 +422,16 @@ func (v FromFieldValue) Write(w *DataWriter) error {
 	}
 
 	return w.WriteAddressList(Addresses(v))
+}
+
+func (v *FromFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v FromFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }
 
 // Sender
@@ -330,6 +459,16 @@ func (v SenderFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddress(v.Address)
 }
 
+func (v *SenderFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v SenderFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Reply-To
 type ReplyToFieldValue Addresses
 
@@ -353,6 +492,16 @@ func (v ReplyToFieldValue) Write(w *DataWriter) error {
 	}
 
 	return w.WriteAddressList(Addresses(v))
+}
+
+func (v *ReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ReplyToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }
 
 // To
@@ -380,6 +529,16 @@ func (v ToFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddressList(Addresses(v))
 }
 
+func (v *ToFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Cc
 type CcFieldValue Addresses
 
@@ -405,6 +564,16 @@ func (v CcFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddressList(Addresses(v))
 }
 
+func (v *CcFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v CcFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Bcc
 type BccFieldValue Addresses
 
@@ -427,6 +596,16 @@ func (v BccFieldValue) Write(w *DataWriter) error {
 	return w.WriteAddressList(Addresses(v))
 }
 
+func (v *BccFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v BccFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Message-ID
 type MessageIdFieldValue MessageId
 
@@ -446,6 +625,16 @@ func (v *MessageIdFieldValue) Read(r *DataReader) error {
 
 func (v MessageIdFieldValue) Write(w *DataWriter) error {
 	return w.WriteMessageId(MessageId(v))
+}
+
+func (v *MessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v MessageIdFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }
 
 // In-Reply-To
@@ -473,6 +662,16 @@ func (v InReplyToFieldValue) Write(w *DataWriter) error {
 	return w.WriteMessageIdList(MessageIds(v))
 }
 
+func (v *InReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v InReplyToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // References
 type ReferencesFieldValue MessageIds
 
@@ -498,6 +697,16 @@ func (v ReferencesFieldValue) Write(w *DataWriter) error {
 	return w.WriteMessageIdList(MessageIds(v))
 }
 
+func (v *ReferencesFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v ReferencesFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Subject
 type SubjectFieldValue string
 
@@ -520,6 +729,16 @@ func (v SubjectFieldValue) Write(w *DataWriter) error {
 	return nil
 }
 
+func (v *SubjectFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v SubjectFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Comments
 type CommentsFieldValue string
 
@@ -540,6 +759,16 @@ func (v *CommentsFieldValue) Read(r *DataReader) error {
 func (v CommentsFieldValue) Write(w *DataWriter) error {
 	w.WriteUnstructured(string(v))
 	return nil
+}
+
+func (v *CommentsFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v CommentsFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }
 
 // Keywords
@@ -577,6 +806,16 @@ func (v KeywordsFieldValue) Write(w *DataWriter) error {
 	return w.WritePhraseList(v)
 }
 
+func (v *KeywordsFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v KeywordsFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
+}
+
 // Optional fields
 type OptionalFieldValue string
 
@@ -597,4 +836,14 @@ func (v *OptionalFieldValue) Read(r *DataReader) error {
 func (v OptionalFieldValue) Write(w *DataWriter) error {
 	w.WriteUnstructured(string(v))
 	return nil
+}
+
+func (v *OptionalFieldValue) testGenerate(g *TestMessageGenerator) {
+	// TODO
+	panic("not implemented")
+}
+
+func (v OptionalFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+	// TODO
+	panic("not implemented")
 }

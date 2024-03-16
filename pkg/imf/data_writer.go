@@ -25,7 +25,7 @@ func MustWriteInlineData(fn func(*DataWriter) error) string {
 	w := NewDataWriter(0)
 
 	if err := fn(w); err != nil {
-		utils.Panicf("cannot write data: %w", err)
+		utils.Panicf("cannot write data: %v", err)
 	}
 
 	return w.buf.String()
@@ -97,9 +97,9 @@ func (w *DataWriter) WriteUnstructured(s string) {
 }
 
 func (w *DataWriter) WriteQuotedString(s string) error {
-	// All printable ASCII characters are allowed; space and backslash
-	// characters must be escaped with a single backslash. UTF-8 sequences are
-	// allowed (see RFC 6532 Internationalized Email Headers).
+	// All printable ASCII characters are allowed; some characters must be
+	// escaped with a single backslash. UTF-8 sequences are allowed (see RFC
+	// 6532 Internationalized Email Headers).
 	//
 	// Quoted strings can be folded. We can split between characters as long as
 	// we do not split quoted pairs (e.g. "\\") or UTF-8 sequences.
@@ -108,7 +108,7 @@ func (w *DataWriter) WriteQuotedString(s string) error {
 
 	for _, c := range s {
 		switch {
-		case c < 33 && c != ' ' && c != '\t':
+		case c < 33 && c != '\t' && c != ' ':
 			return fmt.Errorf("unencodable control character 0x%x", c)
 		case c == '"' || c == '\\':
 			w.WriteString("\\" + string(c))
