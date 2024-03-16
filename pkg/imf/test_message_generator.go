@@ -21,6 +21,8 @@ var (
 		CharRange(93, 126) +
 		CharRange(1, 8) + CharRange(11, 12) + CharRange(14, 31) +
 		CharRange(127, 127)
+
+	commentChars = quotedStringChars
 )
 
 type TestMessageGenerator struct {
@@ -236,6 +238,36 @@ func (g *TestMessageGenerator) generateFWS() {
 	}
 }
 
+func (g *TestMessageGenerator) generateComment() {
+	g.writeByte('(')
+
+	for i := 0; i < rand.Intn(3); i++ {
+		if g.maybe(0.1) {
+			g.generateFWS()
+		}
+
+		if g.maybe(0.8) {
+			for i := 0; i < rand.Intn(8); i++ {
+				c := commentChars[rand.Intn(len(commentChars))]
+
+				if c == '\\' || c == '(' || c == ')' || g.maybe(0.05) {
+					g.writeByte('\\')
+				}
+
+				g.writeByte(c)
+			}
+		} else {
+			g.generateComment()
+		}
+	}
+
+	if g.maybe(0.05) {
+		g.generateFWS()
+	}
+
+	g.writeByte(')')
+}
+
 func (g *TestMessageGenerator) generateCFWS() {
 	if g.maybe(0.1) {
 		for i := 0; i < rand.Intn(2)+1; i++ {
@@ -243,7 +275,7 @@ func (g *TestMessageGenerator) generateCFWS() {
 				g.generateFWS()
 			}
 
-			// TODO comment
+			g.generateComment()
 		}
 
 		if g.maybe(0.5) {
@@ -301,7 +333,7 @@ func (g *TestMessageGenerator) generateQuotedString() string {
 
 		c := quotedStringChars[rand.Intn(len(quotedStringChars))]
 
-		if c == '"' || c == '\\' || c == '(' || c == ')' || g.maybe(0.05) {
+		if c == '"' || c == '\\' || g.maybe(0.05) {
 			g.writeByte('\\')
 		}
 

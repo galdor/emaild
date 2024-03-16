@@ -87,7 +87,7 @@ func (r *DataReader) MaybeSkipFWS() error {
 
 func (r *DataReader) SkipCFWS() error {
 	for len(r.buf) > 0 {
-		if !IsWSP(r.buf[0]) && r.buf[0] != '\r' {
+		if !IsWSP(r.buf[0]) && r.buf[0] != '\r' && r.buf[0] != '(' {
 			break
 		}
 
