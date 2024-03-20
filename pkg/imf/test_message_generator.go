@@ -303,16 +303,8 @@ func (g *TestMessageGenerator) generateDotAtom() string {
 	dotAtom.WriteString(atom)
 
 	for i := 0; i < rand.Intn(3); i++ {
-		if g.maybe(0.05) {
-			g.generateFWS()
-		}
-
 		g.writeString(".")
 		dotAtom.WriteByte('.')
-
-		if g.maybe(0.05) {
-			g.generateFWS()
-		}
 
 		atom := g.generateAtom()
 		dotAtom.WriteString(atom)

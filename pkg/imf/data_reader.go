@@ -227,10 +227,6 @@ func (r *DataReader) ReadDotAtom() ([]byte, error) {
 	var atoms [][]byte
 
 	for {
-		if err := r.SkipCFWS(); err != nil {
-			return nil, err
-		}
-
 		if len(r.buf) == 0 {
 			return nil, fmt.Errorf("truncated value")
 		}
@@ -242,10 +238,6 @@ func (r *DataReader) ReadDotAtom() ([]byte, error) {
 
 		part := r.ReadWhile(IsAtomChar)
 		atoms = append(atoms, part)
-
-		if err := r.SkipCFWS(); err != nil {
-			return nil, err
-		}
 
 		if !r.SkipByte('.') {
 			break
