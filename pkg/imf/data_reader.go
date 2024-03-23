@@ -1024,7 +1024,7 @@ func (r *DataReader) ReadInteger(maxNbDigits int, minValue, maxValue int64) (int
 
 	i64, err := strconv.ParseInt(s, 10, 64)
 	if err != nil || i64 < minValue || i64 > maxValue {
-		return 0, fmt.Errorf("invalid value %q: %w", s, err)
+		return 0, fmt.Errorf("invalid value %q", s)
 	}
 
 	return int(i64), nil
@@ -1070,6 +1070,8 @@ func (r *DataReader) ReadMonth() (time.Month, error) {
 		month = time.August
 	case "sep":
 		month = time.September
+	case "oct":
+		month = time.October
 	case "nov":
 		month = time.November
 	case "dec":
@@ -1194,7 +1196,7 @@ func (r *DataReader) ReadTimezone() (*time.Location, error) {
 		// out-of-band information confirming their meaning". Unknown timezone
 		// names should also be considered equivalent to "-0000".
 
-		s := string(r.ReadWhileN(IsDigitChar, 5))
+		s := string(r.ReadWhileN(IsAlphaChar, 5))
 		name := strings.ToUpper(s)
 
 		var hourOffset int

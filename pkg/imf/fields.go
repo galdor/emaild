@@ -45,10 +45,6 @@ func (v ReturnPathFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ReturnPathFieldValue) testGenerate(g *TestMessageGenerator) {
-	if g.maybe(0.25) {
-		g.generateCFWS()
-	}
-
 	g.writeString("<")
 
 	if g.maybe(0.1) {
@@ -62,10 +58,6 @@ func (v *ReturnPathFieldValue) testGenerate(g *TestMessageGenerator) {
 	}
 
 	g.writeString(">")
-
-	if g.maybe(0.25) {
-		g.generateCFWS()
-	}
 }
 
 func (v ReturnPathFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
@@ -149,13 +141,11 @@ func (v ResentDateFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ResentDateFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ResentDateFieldValue(g.generateDate())
 }
 
 func (v ResentDateFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	g.checkDate(time.Time(*ev.(*ResentDateFieldValue)), time.Time(v))
 }
 
 // Resent-From
@@ -388,13 +378,11 @@ func (v DateFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *DateFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = DateFieldValue(g.generateDate())
 }
 
 func (v DateFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	g.checkDate(time.Time(*ev.(*DateFieldValue)), time.Time(v))
 }
 
 // From

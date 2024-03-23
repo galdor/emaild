@@ -2,11 +2,13 @@ package imf
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 	"net"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/galdor/emaild/pkg/utils"
 )
@@ -98,8 +100,10 @@ func (g *TestMessageGenerator) generateField(name string) *Field {
 	g.writeString(":")
 	if g.maybe(0.9) {
 		g.generateWS()
-	} else if g.maybe(0.5) {
-		g.generateFWS()
+	}
+
+	if g.maybe(0.25) {
+		g.generateCFWS()
 	}
 
 	switch strings.ToLower(field.Name) {
@@ -153,9 +157,10 @@ func (g *TestMessageGenerator) generateField(name string) *Field {
 
 	field.Value.testGenerate(g)
 
-	if g.maybe(0.1) {
-		g.generateFWS()
+	if g.maybe(0.25) {
+		g.generateCFWS()
 	}
+
 	g.writeString("\r\n")
 
 	return &field
@@ -350,6 +355,128 @@ func (g *TestMessageGenerator) generateWord() string {
 	return g.generateQuotedString()
 }
 
+func (g *TestMessageGenerator) generateDate() time.Time {
+	writeSpace := func() {
+		g.generateWS()
+		if g.maybe(0.05) {
+			g.generateCFWS()
+		}
+	}
+
+	minTimestamp := time.Date(1950, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	maxTimestamp := time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	timestamp := minTimestamp + rand.Int63n(maxTimestamp-minTimestamp)
+
+	date := time.Unix(timestamp, 0)
+
+	tzHourOffset := -12 + rand.Intn(26)
+	tzMinuteOffset := rand.Intn(60)
+
+	var tzString string
+	if g.maybe(0.75) {
+		date = date.In(time.FixedZone("", tzHourOffset*3600+tzMinuteOffset*60))
+
+		sign := "+"
+		if tzHourOffset < 0 {
+			sign = "-"
+		}
+
+		tzString = fmt.Sprintf("%s%02d%02d", sign,
+			utils.Abs(tzHourOffset), tzMinuteOffset)
+	} else {
+		var zones = []struct {
+			Name   string
+			Offset int
+		}{
+			{"EDT", -4},
+			{"EST", -5},
+			{"CDT", -5},
+			{"CST", -6},
+			{"MDT", -6},
+			{"MST", -7},
+			{"PDT", -7},
+			{"PST", -8},
+		}
+
+		n := rand.Intn(8)
+		date = date.In(time.FixedZone(zones[n].Name, zones[n].Offset*3600))
+		tzString = zones[n].Name
+	}
+
+	// Day of the week
+	if g.maybe(0.5) {
+		g.writeString(date.Format("Mon"))
+		if g.maybe(0.5) {
+			writeSpace()
+		}
+		g.writeByte(',')
+	}
+
+	// Day
+	writeSpace()
+	if day := date.Day(); day < 10 && g.maybe(0.5) {
+		g.writeString(strconv.Itoa(day))
+	} else {
+		g.writeString(fmt.Sprintf("%02d", day))
+	}
+
+	// Month
+	writeSpace()
+	g.writeString(date.Format("Jan"))
+
+	// Year
+	writeSpace()
+
+	year := date.Year()
+	if g.maybe(0.5) {
+		g.writeString(fmt.Sprintf("%04d", year))
+	} else {
+		if g.maybe(0.5) {
+			if year%100 < 50 {
+				g.writeString(fmt.Sprintf("%02d", year-2000))
+			} else {
+				g.writeString(fmt.Sprintf("%02d", year-1900))
+
+			}
+		} else {
+			g.writeString(fmt.Sprintf("%03d", year-1900))
+		}
+	}
+
+	// Hour
+	writeSpace()
+	g.writeString(fmt.Sprintf("%02d", date.Hour()))
+
+	// Minute
+	if g.maybe(0.1) {
+		writeSpace()
+	}
+	g.writeByte(':')
+
+	if g.maybe(0.25) {
+		writeSpace()
+	}
+	g.writeString(fmt.Sprintf("%02d", date.Minute()))
+
+	// Second
+	if g.maybe(0.5) {
+		if g.maybe(0.1) {
+			writeSpace()
+		}
+		g.writeByte(':')
+
+		g.writeString(fmt.Sprintf("%02d", date.Second()))
+	} else {
+		date = date.Truncate(time.Minute)
+	}
+
+	// Timezone
+	writeSpace()
+	g.writeString(tzString)
+
+	return date
+}
+
 func (g *TestMessageGenerator) generateLocalPart() string {
 	var part string
 
@@ -460,12 +587,24 @@ func (g *TestMessageGenerator) generateSpecificAddress() *SpecificAddress {
 	return &addr
 }
 
+func (g *TestMessageGenerator) checkDate(eDate, date time.Time) bool {
+	dateString := date.Format(time.RFC3339)
+	eDateString := eDate.Format(time.RFC3339)
+
+	if dateString != eDateString {
+		g.t.Errorf("date is %q but should be %q", dateString, eDateString)
+		return false
+	}
+
+	return true
+}
+
 func (g *TestMessageGenerator) checkSpecificAddress(eAddr, addr *SpecificAddress) bool {
 	valid := true
 
 	switch {
 	case addr == nil && eAddr != nil:
-		g.t.Errorf("address is null but should be equal to %#v", eAddr)
+		g.t.Errorf("address is null but should be %#v", eAddr)
 		valid = false
 
 	case addr != nil && eAddr == nil:
