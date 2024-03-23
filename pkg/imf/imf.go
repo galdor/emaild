@@ -52,7 +52,7 @@ func (spec SpecificAddress) String() string {
 
 type Mailbox struct {
 	SpecificAddress
-	DisplayName string // optional
+	DisplayName *string
 }
 
 type Mailboxes []*Mailbox

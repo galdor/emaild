@@ -222,7 +222,7 @@ func (g *TestMessageGenerator) writeString(s string) string {
 }
 
 func (g *TestMessageGenerator) generateWS() {
-	if g.maybe(0.25) {
+	if g.maybe(0.1) {
 		g.writeString("\t")
 	} else {
 		g.writeString(" ")
@@ -355,12 +355,30 @@ func (g *TestMessageGenerator) generateWord() string {
 	return g.generateQuotedString()
 }
 
+func (g *TestMessageGenerator) generatePhrase() string {
+	var buf bytes.Buffer
+
+	for i := 1; i <= 1+rand.Intn(2); i++ {
+		if i > 1 {
+			g.generateFWS()
+			buf.WriteByte(' ')
+		}
+
+		if g.maybe(0.8) {
+			buf.WriteString(g.generateWord())
+		} else {
+			g.writeByte('.')
+			buf.WriteByte('.')
+		}
+	}
+
+	return buf.String()
+}
+
 func (g *TestMessageGenerator) generateDate() time.Time {
 	writeSpace := func() {
-		g.generateWS()
-		if g.maybe(0.05) {
-			g.generateCFWS()
-		}
+		// Obsolete syntax allos CFWS pretty much everywhere in dates and times.
+		g.generateCFWS()
 	}
 
 	minTimestamp := time.Date(1950, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
@@ -516,7 +534,7 @@ func (g *TestMessageGenerator) generateDomainLiteral() string {
 
 	buf.WriteByte('[')
 
-	if g.maybe(0.5) {
+	if g.maybe(0.75) {
 		for i := 0; i < 4; i++ {
 			if i > 0 {
 				buf.WriteByte('.')
@@ -568,13 +586,13 @@ func (g *TestMessageGenerator) generateSpecificAddress() *SpecificAddress {
 	localPart := g.generateLocalPart()
 
 	if g.maybe(0.1) {
-		g.generateCFWS()
+		g.generateFWS()
 	}
 
 	g.writeString("@")
 
 	if g.maybe(0.1) {
-		g.generateCFWS()
+		g.generateFWS()
 	}
 
 	domain := g.generateDomain()
@@ -585,6 +603,67 @@ func (g *TestMessageGenerator) generateSpecificAddress() *SpecificAddress {
 	}
 
 	return &addr
+}
+
+func (g *TestMessageGenerator) generateMailbox() *Mailbox {
+	var mb Mailbox
+
+	if g.maybe(0.5) {
+		mb.DisplayName = utils.Ref(g.generatePhrase())
+		g.generateFWS()
+
+		g.writeByte('<')
+		g.generateFWS()
+	}
+
+	addr := g.generateSpecificAddress()
+
+	mb.SpecificAddress = *addr
+
+	if mb.DisplayName != nil {
+		g.generateFWS()
+		g.writeByte('>')
+	}
+
+	return &mb
+}
+
+func (g *TestMessageGenerator) generateGroup() *Group {
+	var group Group
+
+	group.DisplayName = g.generatePhrase()
+	g.generateFWS()
+
+	g.writeByte(':')
+	g.generateFWS()
+
+	for i := 0; i <= rand.Intn(3); i++ {
+		if i > 0 {
+			g.generateFWS()
+			g.writeByte(',')
+			g.generateFWS()
+		}
+
+		if g.maybe(0.1) {
+			g.generateCFWS()
+		} else {
+			mb := g.generateMailbox()
+			group.Mailboxes = append(group.Mailboxes, mb)
+		}
+	}
+
+	g.generateFWS()
+	g.writeByte(';')
+
+	return &group
+}
+
+func (g *TestMessageGenerator) generateAddress() Address {
+	if g.maybe(0.75) {
+		return g.generateMailbox()
+	} else {
+		return g.generateGroup()
+	}
 }
 
 func (g *TestMessageGenerator) checkDate(eDate, date time.Time) bool {
@@ -623,6 +702,53 @@ func (g *TestMessageGenerator) checkSpecificAddress(eAddr, addr *SpecificAddress
 				addr.Domain, eAddr.Domain)
 			valid = false
 		}
+	}
+
+	return valid
+}
+
+func (g *TestMessageGenerator) checkAddress(eAddr, addr Address) bool {
+	mailbox, isMailbox := addr.(*Mailbox)
+	group, isGroup := addr.(*Group)
+
+	eMailbox, isEMailbox := addr.(*Mailbox)
+	eGroup, isEGroup := addr.(*Group)
+
+	if isGroup && isEMailbox {
+		g.t.Errorf("address is a group but should be a mailbox")
+		return false
+	}
+
+	if isMailbox && isEGroup {
+		g.t.Errorf("address is a mailbox but should be a group")
+		return false
+	}
+
+	valid := true
+
+	checkDisplayNames := func(eName, name *string, label string) {
+		switch {
+		case name == nil && eName != nil:
+			g.t.Errorf("%s does not have a display name but should have "+
+				"display name %q", label, *eName)
+			valid = false
+		case name != nil && eName == nil:
+			g.t.Errorf("%s has display name %q but should not have one ",
+				label, *name)
+			valid = false
+		case name != nil && eName != nil:
+			if *name != *eName {
+				g.t.Errorf("%s display name is %q but should be %q",
+					label, *name, *eName)
+				valid = false
+			}
+		}
+	}
+
+	if isMailbox {
+		checkDisplayNames(eMailbox.DisplayName, mailbox.DisplayName, "mailbox")
+	} else if isGroup {
+		checkDisplayNames(&eGroup.DisplayName, &group.DisplayName, "group")
 	}
 
 	return valid

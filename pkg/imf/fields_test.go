@@ -16,7 +16,10 @@ func TestReadResentDateField(t *testing.T) {
 
 // TODO Resent-From
 
-// TODO Resent-Sender
+func TestReadResentSenderField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("Resent-Sender")
+}
 
 // TODO Resent-To
 
@@ -33,7 +36,10 @@ func TestReadDateField(t *testing.T) {
 
 // TODO From
 
-// TODO Sender
+func TestReadSenderField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("Sender")
+}
 
 // TODO Reply-To
 

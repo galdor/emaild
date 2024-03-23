@@ -212,13 +212,11 @@ func (v ResentSenderFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ResentSenderFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	g.generateAddress()
 }
 
 func (v ResentSenderFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	g.checkAddress(ev.(*ResentSenderFieldValue).Address, v.Address)
 }
 
 // Resent-To
@@ -448,13 +446,11 @@ func (v SenderFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *SenderFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	g.generateAddress()
 }
 
 func (v SenderFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	g.checkAddress(ev.(*SenderFieldValue).Address, v.Address)
 }
 
 // Reply-To

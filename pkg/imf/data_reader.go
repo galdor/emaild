@@ -309,17 +309,18 @@ func (r *DataReader) ReadWord() ([]byte, error) {
 
 func (r *DataReader) ReadPhrase() ([]byte, error) {
 	var value []byte
+	nbWords := 0
 
 	appendWord := func(word []byte) {
-		if len(word) == 0 {
-			return
-		}
+		nbWords++
 
-		if len(value) > 0 {
-			value = append(value, ' ')
-		}
+		if len(word) > 0 {
+			if len(value) > 0 {
+				value = append(value, ' ')
+			}
 
-		value = append(value, word...)
+			value = append(value, word...)
+		}
 	}
 
 	for {
@@ -336,6 +337,7 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 		if r.buf[0] == '.' {
 			appendWord([]byte{'.'})
 			r.Skip(1)
+			continue
 		}
 
 		var finished bool
@@ -344,7 +346,7 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 			word, err := r.ReadWord()
 			if err != nil {
 				// Phrases must contain at least one word
-				if len(value) == 0 {
+				if nbWords == 0 {
 					return fmt.Errorf("invalid word: %w", err)
 				}
 
@@ -601,7 +603,7 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 	return spec, nil
 }
 
-func (r *DataReader) ReadNameAddress() (*Mailbox, error) {
+func (r *DataReader) ReadNamedAddress() (*Mailbox, error) {
 	if err := r.SkipCFWS(); err != nil {
 		return nil, err
 	}
@@ -628,7 +630,7 @@ func (r *DataReader) ReadNameAddress() (*Mailbox, error) {
 
 	mb := Mailbox{
 		SpecificAddress: *spec,
-		DisplayName:     string(displayName),
+		DisplayName:     utils.Ref(string(displayName)),
 	}
 
 	return &mb, nil
@@ -657,9 +659,9 @@ func (r *DataReader) ReadMailbox() (*Mailbox, error) {
 		return nil
 	})
 	if err != nil {
-		mb, err := r.ReadNameAddress()
+		mb, err := r.ReadNamedAddress()
 		if err != nil {
-			return nil, fmt.Errorf("invalid name address: %w", err)
+			return nil, fmt.Errorf("invalid named address: %w", err)
 		}
 
 		mailbox = mb
@@ -668,7 +670,7 @@ func (r *DataReader) ReadMailbox() (*Mailbox, error) {
 	return mailbox, nil
 }
 
-func (r *DataReader) ReadMailboxList() ([]*Mailbox, error) {
+func (r *DataReader) ReadMailboxList(allowEmpty bool) ([]*Mailbox, error) {
 	var mailboxes []*Mailbox
 
 	for {
@@ -676,7 +678,7 @@ func (r *DataReader) ReadMailboxList() ([]*Mailbox, error) {
 			return nil, err
 		}
 
-		if len(r.buf) == 0 {
+		if len(r.buf) == 0 || r.StartsWithByte(';') {
 			break
 		}
 
@@ -701,7 +703,7 @@ func (r *DataReader) ReadMailboxList() ([]*Mailbox, error) {
 		}
 	}
 
-	if len(mailboxes) == 0 {
+	if len(mailboxes) == 0 && !allowEmpty {
 		return nil, fmt.Errorf("empty list")
 	}
 
@@ -730,7 +732,10 @@ func (r *DataReader) ReadGroup() (*Group, error) {
 		return nil, err
 	}
 
-	mailboxes, err := r.ReadMailboxList()
+	// A group list can be a mailbox list (in which case it must contain at
+	// least one mailbox), but it can also be a single CFWS element. We handle
+	// both by reading a mailbox list which can be empty.
+	mailboxes, err := r.ReadMailboxList(true)
 	if err != nil {
 		return nil, fmt.Errorf("invalid mailbox list: %w", err)
 	}

@@ -248,11 +248,11 @@ func (w *DataWriter) WriteAddressList(addrs Addresses) error {
 }
 
 func (w *DataWriter) WriteMailbox(mailbox *Mailbox) error {
-	if mailbox.DisplayName == "" {
+	if mailbox.DisplayName == nil {
 		return w.WriteSpecificAddress(mailbox.SpecificAddress)
 	}
 
-	if err := w.WriteQuotedString(mailbox.DisplayName); err != nil {
+	if err := w.WriteQuotedString(*mailbox.DisplayName); err != nil {
 		return fmt.Errorf("invalid display name: %w", err)
 	}
 	w.WriteRune(' ')
