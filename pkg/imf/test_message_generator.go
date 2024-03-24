@@ -13,7 +13,7 @@ import (
 	"github.com/galdor/emaild/pkg/utils"
 )
 
-const NbFieldTests = 100
+const NbFieldTests = 1000
 
 var (
 	atomChars = CharRange('a', 'z') + CharRange('A', 'Z') +
