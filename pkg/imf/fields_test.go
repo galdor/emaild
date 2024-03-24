@@ -61,7 +61,7 @@ func TestReadSenderField(t *testing.T) {
 
 func TestReadReplyToField(t *testing.T) {
 	g := NewTestMessageGenerator(t)
-	g.GenerateAndTestFieldN("ReplyTo")
+	g.GenerateAndTestFieldN("Reply-To")
 }
 
 func TestReadToField(t *testing.T) {
@@ -94,9 +94,15 @@ func TestReadReferencesField(t *testing.T) {
 	g.GenerateAndTestFieldN("References")
 }
 
-// TODO Subject
+func TestReadSubjectField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("Subject")
+}
 
-// TODO Comments
+func TestReadCommentsField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("Comments")
+}
 
 // TODO Keywords
 

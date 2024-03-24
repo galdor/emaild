@@ -138,7 +138,8 @@ func (r *DataReader) SkipComment(depth int) error {
 			}
 			r.Skip(2)
 		} else {
-			return fmt.Errorf("invalid character %s", utils.QuoteByte(r.buf[0]))
+			return fmt.Errorf("invalid comment character %s",
+				utils.QuoteByte(r.buf[0]))
 		}
 	}
 

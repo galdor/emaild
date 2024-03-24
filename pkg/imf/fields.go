@@ -701,13 +701,12 @@ func (v SubjectFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *SubjectFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = SubjectFieldValue(g.generateUnstructured())
 }
 
 func (v SubjectFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*SubjectFieldValue)
+	g.checkUnstructured(string(*ev2), string(v))
 }
 
 // Comments
@@ -733,13 +732,12 @@ func (v CommentsFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *CommentsFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = CommentsFieldValue(g.generateUnstructured())
 }
 
 func (v CommentsFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*CommentsFieldValue)
+	g.checkUnstructured(string(*ev2), string(v))
 }
 
 // Keywords

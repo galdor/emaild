@@ -113,7 +113,7 @@ func (r *MessageReader) maybeProcessLine() error {
 	}
 
 	// Colon separator
-	if err := rr.SkipCFWS(); err != nil {
+	if err := rr.MaybeSkipFWS(); err != nil {
 		return err
 	}
 
@@ -122,7 +122,7 @@ func (r *MessageReader) maybeProcessLine() error {
 	}
 
 	// Field value
-	if err := rr.SkipCFWS(); err != nil {
+	if err := rr.MaybeSkipFWS(); err != nil {
 		return err
 	}
 
@@ -179,7 +179,7 @@ func (r *MessageReader) maybeProcessLine() error {
 		return fmt.Errorf("invalid value for field %q: %w", field.Name, err)
 	}
 
-	if err := rr.SkipCFWS(); err != nil {
+	if err := rr.MaybeSkipFWS(); err != nil {
 		return err
 	}
 

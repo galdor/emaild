@@ -16,15 +16,20 @@ import (
 const NbFieldTests = 1000
 
 var (
+	VChars = CharRange(33, 126) // RFC 5234
+
+	NoWSCtlChars = CharRange(1, 8) + CharRange(11, 12) + CharRange(14, 31) +
+		CharRange(127, 127)
+
 	atomChars = CharRange('a', 'z') + CharRange('A', 'Z') +
 		CharRange('0', '9') + "!#$%&'*+-/=?^_`{|}~"
 
 	quotedStringChars = CharRange(33, 39) + CharRange(42, 91) +
-		CharRange(93, 126) +
-		CharRange(1, 8) + CharRange(11, 12) + CharRange(14, 31) +
-		CharRange(127, 127)
+		CharRange(93, 126) + NoWSCtlChars
 
 	commentChars = quotedStringChars
+
+	unstructuredChars = CharRange(0, 0) + NoWSCtlChars + VChars
 )
 
 type TestMessageGenerator struct {
@@ -103,7 +108,7 @@ func (g *TestMessageGenerator) generateField(name string) *Field {
 	}
 
 	if g.maybe(0.25) {
-		g.generateCFWS()
+		g.generateFWS()
 	}
 
 	switch strings.ToLower(field.Name) {
@@ -158,7 +163,7 @@ func (g *TestMessageGenerator) generateField(name string) *Field {
 	field.Value.testGenerate(g)
 
 	if g.maybe(0.25) {
-		g.generateCFWS()
+		g.generateFWS()
 	}
 
 	g.writeString("\r\n")
@@ -373,6 +378,23 @@ func (g *TestMessageGenerator) generatePhrase() string {
 	}
 
 	return buf.String()
+}
+
+func (g *TestMessageGenerator) generateUnstructured() string {
+	data := make([]byte, rand.Intn(120))
+
+	for i := 0; i < len(data); i++ {
+		if g.maybe(0.01) {
+			g.generateFWS()
+		}
+
+		c := unstructuredChars[rand.Intn(len(unstructuredChars))]
+
+		g.writeByte(c)
+		data[i] = c
+	}
+
+	return string(data)
 }
 
 func (g *TestMessageGenerator) generateDate() time.Time {
@@ -735,6 +757,15 @@ func (g *TestMessageGenerator) generateMessageIds() MessageIds {
 	}
 
 	return ids
+}
+
+func (g *TestMessageGenerator) checkUnstructured(eS, s string) bool {
+	if s != eS {
+		g.t.Errorf("string is %q but should be %q", s, eS)
+		return false
+	}
+
+	return true
 }
 
 func (g *TestMessageGenerator) checkDate(eDate, date time.Time) bool {
