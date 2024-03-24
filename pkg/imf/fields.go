@@ -627,7 +627,7 @@ func (v InReplyToFieldValue) String() string {
 }
 
 func (v *InReplyToFieldValue) Read(r *DataReader) error {
-	ids, err := r.ReadMessageIdList()
+	ids, err := r.ReadMessageIdList(true)
 	if err != nil {
 		return err
 	}
@@ -645,13 +645,12 @@ func (v InReplyToFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *InReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = InReplyToFieldValue(g.generateMessageIds())
 }
 
 func (v InReplyToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*InReplyToFieldValue)
+	g.checkMessageIds(MessageIds(*ev2), MessageIds(v))
 }
 
 // References
@@ -662,7 +661,7 @@ func (v ReferencesFieldValue) String() string {
 }
 
 func (v *ReferencesFieldValue) Read(r *DataReader) error {
-	ids, err := r.ReadMessageIdList()
+	ids, err := r.ReadMessageIdList(true)
 	if err != nil {
 		return err
 	}
@@ -680,13 +679,12 @@ func (v ReferencesFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ReferencesFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ReferencesFieldValue(g.generateMessageIds())
 }
 
 func (v ReferencesFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ReferencesFieldValue)
+	g.checkMessageIds(MessageIds(*ev2), MessageIds(v))
 }
 
 // Subject

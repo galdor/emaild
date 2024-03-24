@@ -879,7 +879,7 @@ func (r *DataReader) ReadMessageId() (*MessageId, error) {
 	return &id, nil
 }
 
-func (r *DataReader) ReadMessageIdList() (MessageIds, error) {
+func (r *DataReader) ReadMessageIdList(allowEmpty bool) (MessageIds, error) {
 	// Unlike other lists, message id lists do not use a comma separator
 
 	var ids MessageIds
@@ -901,7 +901,7 @@ func (r *DataReader) ReadMessageIdList() (MessageIds, error) {
 		ids = append(ids, *id)
 	}
 
-	if len(ids) == 0 {
+	if len(ids) == 0 && !allowEmpty {
 		return nil, fmt.Errorf("empty list")
 	}
 

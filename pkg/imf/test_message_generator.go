@@ -510,14 +510,14 @@ func (g *TestMessageGenerator) generateLocalPart() string {
 
 		for i := 0; i < rand.Intn(3); i++ {
 			if g.maybe(0.05) {
-				g.generateFWS()
+				g.generateCFWS()
 			}
 
 			g.writeByte('.')
 			buf.WriteByte('.')
 
 			if g.maybe(0.05) {
-				g.generateFWS()
+				g.generateCFWS()
 			}
 
 			buf.WriteString(g.generateWord())
@@ -702,6 +702,20 @@ func (g *TestMessageGenerator) generateMessageId() MessageId {
 	return id
 }
 
+func (g *TestMessageGenerator) generateMessageIds() MessageIds {
+	var ids MessageIds
+
+	for i := 0; i < rand.Intn(4); i++ {
+		if i > 0 {
+			g.generateFWS()
+		}
+
+		ids = append(ids, g.generateMessageId())
+	}
+
+	return ids
+}
+
 func (g *TestMessageGenerator) checkDate(eDate, date time.Time) bool {
 	dateString := date.Format(time.RFC3339)
 	eDateString := eDate.Format(time.RFC3339)
@@ -801,6 +815,27 @@ func (g *TestMessageGenerator) checkMessageId(eId, id MessageId) bool {
 	if id.Right != eId.Right {
 		g.t.Errorf("right part is %q but should be %q", id.Right, eId.Right)
 		valid = false
+	}
+
+	return valid
+}
+
+func (g *TestMessageGenerator) checkMessageIds(eIds, ids MessageIds) bool {
+	if len(ids) != len(eIds) {
+		g.t.Errorf("list contains %d ids but should contain %d ids",
+			len(ids), len(eIds))
+		return false
+	}
+
+	valid := true
+
+	for i, id := range ids {
+		eId := eIds[i]
+
+		if !g.checkMessageId(eId, id) {
+			g.t.Errorf("invalid id at index %d:", i)
+			valid = false
+		}
 	}
 
 	return valid

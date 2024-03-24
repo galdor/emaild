@@ -57,9 +57,15 @@ func TestReadMessageIdField(t *testing.T) {
 	g.GenerateAndTestFieldN("Message-ID")
 }
 
-// TODO In-Reply-To
+func TestReadInReplyToField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("In-Reply-To")
+}
 
-// TODO References
+func TestReadReferencesField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("References")
+}
 
 // TODO Subject
 
