@@ -666,6 +666,27 @@ func (g *TestMessageGenerator) generateAddress() Address {
 	}
 }
 
+func (g *TestMessageGenerator) generateAddresses(allowEmpty bool) Addresses {
+	var addrs Addresses
+
+	nMin := 0
+	if !allowEmpty {
+		nMin = 1
+	}
+
+	for i := nMin; i <= nMin+rand.Intn(2); i++ {
+		if i > nMin {
+			g.generateFWS()
+			g.writeByte(',')
+			g.generateFWS()
+		}
+
+		addrs = append(addrs, g.generateAddress())
+	}
+
+	return addrs
+}
+
 func (g *TestMessageGenerator) generateMessageId() MessageId {
 	var id MessageId
 
@@ -705,7 +726,7 @@ func (g *TestMessageGenerator) generateMessageId() MessageId {
 func (g *TestMessageGenerator) generateMessageIds() MessageIds {
 	var ids MessageIds
 
-	for i := 0; i < rand.Intn(4); i++ {
+	for i := 0; i <= rand.Intn(3); i++ {
 		if i > 0 {
 			g.generateFWS()
 		}
@@ -799,6 +820,27 @@ func (g *TestMessageGenerator) checkAddress(eAddr, addr Address) bool {
 		checkDisplayNames(eMailbox.DisplayName, mailbox.DisplayName, "mailbox")
 	} else if isGroup {
 		checkDisplayNames(&eGroup.DisplayName, &group.DisplayName, "group")
+	}
+
+	return valid
+}
+
+func (g *TestMessageGenerator) checkAddresses(eAddrs, addrs Addresses) bool {
+	if len(addrs) != len(eAddrs) {
+		g.t.Errorf("list contains %d addresses but should contain %d addresses",
+			len(addrs), len(eAddrs))
+		return false
+	}
+
+	valid := true
+
+	for i, addr := range addrs {
+		eAddr := eAddrs[i]
+
+		if !g.checkAddress(eAddr, addr) {
+			g.t.Errorf("invalid address at index %d:", i)
+			valid = false
+		}
 	}
 
 	return valid

@@ -176,13 +176,12 @@ func (v ResentFromFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ResentFromFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ResentFromFieldValue(g.generateAddresses(false))
 }
 
 func (v ResentFromFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ResentFromFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Sender
@@ -245,13 +244,12 @@ func (v ResentToFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ResentToFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ResentToFieldValue(g.generateAddresses(false))
 }
 
 func (v ResentToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ResentToFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Cc
@@ -280,13 +278,12 @@ func (v ResentCcFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ResentCcFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ResentCcFieldValue(g.generateAddresses(false))
 }
 
 func (v ResentCcFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ResentCcFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Bcc
@@ -313,13 +310,12 @@ func (v ResentBccFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ResentBccFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ResentBccFieldValue(g.generateAddresses(true))
 }
 
 func (v ResentBccFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ResentBccFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Message-ID
@@ -410,13 +406,12 @@ func (v FromFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *FromFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = FromFieldValue(g.generateAddresses(false))
 }
 
 func (v FromFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*FromFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Sender
@@ -478,13 +473,12 @@ func (v ReplyToFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ReplyToFieldValue(g.generateAddresses(false))
 }
 
 func (v ReplyToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ReplyToFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // To
@@ -513,13 +507,12 @@ func (v ToFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ToFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ToFieldValue(g.generateAddresses(false))
 }
 
 func (v ToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ToFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Cc
@@ -548,13 +541,12 @@ func (v CcFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *CcFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = CcFieldValue(g.generateAddresses(false))
 }
 
 func (v CcFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*CcFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Bcc
@@ -580,13 +572,12 @@ func (v BccFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *BccFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = BccFieldValue(g.generateAddresses(true))
 }
 
 func (v BccFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*BccFieldValue)
+	g.checkAddresses(Addresses(*ev2), Addresses(v))
 }
 
 // Message-ID
