@@ -838,15 +838,7 @@ func (r *DataReader) ReadMessageId() (*MessageId, error) {
 		return nil, err
 	}
 
-	var left []byte
-	var err error
-
-	if IsAtomChar(r.buf[0]) {
-		left, err = r.ReadDotAtom()
-	} else {
-		left, err = r.ReadQuotedString()
-	}
-
+	left, err := r.ReadLocalPart()
 	if err != nil {
 		return nil, fmt.Errorf("invalid left part: %w", err)
 	}

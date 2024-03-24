@@ -344,13 +344,12 @@ func (v ResentMessageIdFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *ResentMessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = ResentMessageIdFieldValue(g.generateMessageId())
 }
 
 func (v ResentMessageIdFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*ResentMessageIdFieldValue)
+	g.checkMessageId(MessageId(*ev2), MessageId(v))
 }
 
 // Date
@@ -612,13 +611,12 @@ func (v MessageIdFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *MessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = MessageIdFieldValue(g.generateMessageId())
 }
 
 func (v MessageIdFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*MessageIdFieldValue)
+	g.checkMessageId(MessageId(*ev2), MessageId(v))
 }
 
 // In-Reply-To

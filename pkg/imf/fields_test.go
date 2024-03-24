@@ -27,7 +27,10 @@ func TestReadResentSenderField(t *testing.T) {
 
 // TODO Resent-Bcc
 
-// TODO Resent-Message-ID
+func TestReadResentMessageIdField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("Resent-Message-ID")
+}
 
 func TestReadDateField(t *testing.T) {
 	g := NewTestMessageGenerator(t)
@@ -49,7 +52,10 @@ func TestReadSenderField(t *testing.T) {
 
 // TODO Bcc
 
-// TODO Message-ID
+func TestReadMessageIdField(t *testing.T) {
+	g := NewTestMessageGenerator(t)
+	g.GenerateAndTestFieldN("Message-ID")
+}
 
 // TODO In-Reply-To
 

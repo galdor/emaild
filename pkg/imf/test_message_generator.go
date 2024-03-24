@@ -666,6 +666,42 @@ func (g *TestMessageGenerator) generateAddress() Address {
 	}
 }
 
+func (g *TestMessageGenerator) generateMessageId() MessageId {
+	var id MessageId
+
+	g.writeByte('<')
+	if g.maybe(0.1) {
+		g.generateFWS()
+	}
+
+	if g.maybe(0.5) {
+		id.Left = g.generateDotAtom()
+	} else {
+		id.Left = g.generateLocalPart()
+	}
+
+	if g.maybe(0.1) {
+		g.generateFWS()
+	}
+	g.writeByte('@')
+	if g.maybe(0.1) {
+		g.generateFWS()
+	}
+
+	if g.maybe(0.5) {
+		id.Right = g.generateDotAtom()
+	} else {
+		id.Right = g.generateDomain()
+	}
+
+	if g.maybe(0.1) {
+		g.generateFWS()
+	}
+	g.writeByte('>')
+
+	return id
+}
+
 func (g *TestMessageGenerator) checkDate(eDate, date time.Time) bool {
 	dateString := date.Format(time.RFC3339)
 	eDateString := eDate.Format(time.RFC3339)
@@ -749,6 +785,22 @@ func (g *TestMessageGenerator) checkAddress(eAddr, addr Address) bool {
 		checkDisplayNames(eMailbox.DisplayName, mailbox.DisplayName, "mailbox")
 	} else if isGroup {
 		checkDisplayNames(&eGroup.DisplayName, &group.DisplayName, "group")
+	}
+
+	return valid
+}
+
+func (g *TestMessageGenerator) checkMessageId(eId, id MessageId) bool {
+	valid := true
+
+	if id.Left != eId.Left {
+		g.t.Errorf("left part is %q but should be %q", id.Left, eId.Left)
+		valid = false
+	}
+
+	if id.Right != eId.Right {
+		g.t.Errorf("right part is %q but should be %q", id.Right, eId.Right)
+		valid = false
 	}
 
 	return valid
