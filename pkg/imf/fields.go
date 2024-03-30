@@ -2,7 +2,6 @@ package imf
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -67,56 +66,62 @@ func (v ReturnPathFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, e
 
 // Received
 type ReceivedFieldValue struct {
-	Tokens string // [1]
+	Tokens ReceivedTokens
 	Date   time.Time
-
-	// [1] We do not currently parse individual tokens due to the brain damaged
-	// specification indicating that each token is either a word, an angle
-	// address, a specific address or a domain. Good luck differentiating those.
 }
 
 func (v *ReceivedFieldValue) String() string {
-	return fmt.Sprintf("%s", v.Date.Format(time.RFC3339))
+	return fmt.Sprintf("%v %s", v.Tokens, v.Date.Format(time.RFC3339))
 }
 
 func (v *ReceivedFieldValue) Read(r *DataReader) error {
-	// Careful, ';' can be part of one or more tokens since they can be words.
-	// We look for it starting from the end of the field since date-time
-	// elements cannot contain it.
-
-	r2 := NewDataReader(r.ReadFromChar(';'))
-
-	if _, err := r2.ReadCFWS(); err != nil {
+	tokens, err := r.ReadReceivedTokens()
+	if err != nil {
 		return err
 	}
 
-	if r2.Empty() {
-		return fmt.Errorf("missing or empty datetime string")
+	if _, err := r.ReadCFWS(); err != nil {
+		return err
 	}
 
-	date, err := r2.ReadDateTime()
+	if !r.SkipByte(';') {
+		return fmt.Errorf("missing ';' character after tokens")
+	}
+
+	date, err := r.ReadDateTime()
 	if err != nil {
 		return fmt.Errorf("invalid datetime: %w", err)
 	}
 
-	v.Tokens = string(r.ReadAll())
+	v.Tokens = tokens
 	v.Date = *date
 
 	return nil
 }
 
 func (v ReceivedFieldValue) Write(w *DataWriter) error {
-	return errors.New("not implemented")
+	if err := w.WriteReceivedTokens(v.Tokens); err != nil {
+		return err
+	}
+	w.WriteString("; ")
+	w.WriteDateTime(v.Date)
+	return nil
 }
 
 func (v *ReceivedFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	// Received tokens are irrelevant because we do not parse them
+
+	g.writeByte(';')
+
+	if g.maybe(0.1) {
+		g.generateCFWS()
+	}
+
+	v.Date = g.generateDate()
 }
 
 func (v ReceivedFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	g.checkDate(t, ev.(*ReceivedFieldValue).Date, v.Date)
 }
 
 // Resent-Date

@@ -496,7 +496,7 @@ func (r *DataReader) ReadDomainLiteral() ([]byte, error) {
 	return domain, nil
 }
 
-func (r *DataReader) ReadDomain() ([]byte, error) {
+func (r *DataReader) ReadDomain() (*Domain, error) {
 	// Start by looking for a domain-literal. Note that it can contain a
 	// quoted string.
 
@@ -514,7 +514,7 @@ func (r *DataReader) ReadDomain() ([]byte, error) {
 		// Addr-Spec Specification). It is not clear what it is supposed to
 		// represent.
 
-		return domain, nil
+		return utils.Ref(Domain(domain)), nil
 	}
 
 	// If it is not a domain-literal, it is a dot-atom
@@ -524,7 +524,7 @@ func (r *DataReader) ReadDomain() ([]byte, error) {
 		return nil, fmt.Errorf("invalid dot atom: %w", err)
 	}
 
-	return domain, nil
+	return utils.Ref(Domain(domain)), nil
 }
 
 func (r *DataReader) ReadSpecificAddress() (*SpecificAddress, error) {
@@ -552,7 +552,7 @@ func (r *DataReader) ReadSpecificAddress() (*SpecificAddress, error) {
 
 	spec := SpecificAddress{
 		LocalPart: string(localPart),
-		Domain:    string(domain),
+		Domain:    *domain,
 	}
 
 	return &spec, nil
@@ -870,7 +870,7 @@ func (r *DataReader) ReadMessageId() (*MessageId, error) {
 
 	id := MessageId{
 		Left:  string(left),
-		Right: string(right),
+		Right: *right,
 	}
 
 	return &id, nil
@@ -917,7 +917,7 @@ func (r *DataReader) ReadDateTime() (*time.Time, error) {
 
 	if IsAlphaChar(r.buf[0]) {
 		if _, err := r.MaybeReadDayName(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid day name: %w", err)
 		}
 	}
 
@@ -1227,4 +1227,65 @@ func (r *DataReader) ReadTimezone() (*time.Location, error) {
 	}
 
 	return loc, nil
+}
+
+func (r *DataReader) ReadReceivedTokens() (ReceivedTokens, error) {
+	var tokens ReceivedTokens
+
+	for {
+		if _, err := r.ReadCFWS(); err != nil {
+			return nil, err
+		}
+
+		if len(r.buf) == 0 || r.StartsWithByte(';') {
+			break
+		}
+
+		err1 := r.Try(func() error {
+			addr, err := r.ReadAngleAddress(false)
+			if err != nil {
+				return err
+			}
+
+			tokens = append(tokens, *addr)
+			return nil
+		})
+		if err1 == nil {
+			continue
+		}
+
+		err2 := r.Try(func() error {
+			addr, err := r.ReadSpecificAddress()
+			if err != nil {
+				return err
+			}
+
+			tokens = append(tokens, *addr)
+			return nil
+		})
+		if err2 == nil {
+			continue
+		}
+
+		err3 := r.Try(func() error {
+			domain, err := r.ReadDomain()
+			if err != nil {
+				return err
+			}
+
+			tokens = append(tokens, *domain)
+			return nil
+		})
+		if err3 == nil {
+			continue
+		}
+
+		word, err := r.ReadWord()
+		if err != nil {
+			return nil, fmt.Errorf("invalid word: %w", err)
+		}
+		tokens = append(tokens, word)
+	}
+
+	return tokens, nil
 }

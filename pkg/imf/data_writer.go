@@ -140,14 +140,20 @@ func (w *DataWriter) WriteDotAtomOrQuotedString(s string) error {
 	return w.WriteQuotedString(s)
 }
 
-func (w *DataWriter) WriteDomain(domain string) {
-	if IsDotAtom(domain) {
-		w.WriteString(domain)
+func (w *DataWriter) WriteDomain(domain Domain) {
+	s := string(domain)
+
+	if IsDotAtom(s) {
+		w.WriteString(s)
 	} else {
 		w.WriteRune('[')
-		w.WriteString(domain)
+		w.WriteString(s)
 		w.WriteRune(']')
 	}
+}
+
+func (w *DataWriter) WriteWord(word string) error {
+	return w.WriteAtomOrQuotedString(word)
 }
 
 func (w *DataWriter) WritePhrase(phrase string) error {
@@ -161,7 +167,7 @@ func (w *DataWriter) WritePhrase(phrase string) error {
 			w.WriteRune(' ')
 		}
 
-		if err := w.WriteAtomOrQuotedString(word); err != nil {
+		if err := w.WriteWord(word); err != nil {
 			return fmt.Errorf("invalid word %q: %w", word, err)
 		}
 	}
@@ -288,7 +294,7 @@ func (w *DataWriter) WriteSpecificAddress(spec SpecificAddress) error {
 
 	w.WriteRune('@')
 
-	w.WriteString(spec.Domain)
+	w.WriteDomain(spec.Domain)
 
 	return nil
 }
@@ -313,6 +319,29 @@ func (w *DataWriter) WriteGroup(group *Group) error {
 	}
 
 	w.WriteRune(';')
+
+	return nil
+}
+
+func (w *DataWriter) WriteReceivedTokens(tokens ReceivedTokens) error {
+	for i, token := range tokens {
+		if i > 0 {
+			w.WriteRune(' ')
+		}
+
+		switch v := token.(type) {
+		case SpecificAddress:
+			if err := w.WriteSpecificAddress(v); err != nil {
+				return fmt.Errorf("invalid specific address: %w", err)
+			}
+		case Domain:
+			w.WriteDomain(v)
+		case string:
+			w.WriteWord(v)
+		default:
+			utils.Panicf("unhandle received token %#v (%T)", token, token)
+		}
+	}
 
 	return nil
 }

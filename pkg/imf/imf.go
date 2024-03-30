@@ -43,7 +43,7 @@ func (addrs Addresses) String() string {
 
 type SpecificAddress struct {
 	LocalPart string
-	Domain    string
+	Domain    Domain
 }
 
 func (spec SpecificAddress) String() string {
@@ -88,7 +88,7 @@ func (g Group) String() string {
 
 type MessageId struct {
 	Left  string
-	Right string
+	Right Domain
 }
 
 type MessageIds []MessageId
@@ -103,6 +103,26 @@ func (id MessageId) String() string {
 func (ids MessageIds) String() string {
 	return MustWriteInlineData(func(w *DataWriter) error {
 		w.WriteMessageIdList(ids)
+		return nil
+	})
+}
+
+type ReceivedToken interface{} // SpecificAddress, Domain or string
+
+type ReceivedTokens []ReceivedToken
+
+func (ts ReceivedTokens) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteReceivedTokens(ts)
+		return nil
+	})
+}
+
+type Domain string
+
+func (d Domain) String() string {
+	return MustWriteInlineData(func(w *DataWriter) error {
+		w.WriteDomain(d)
 		return nil
 	})
 }

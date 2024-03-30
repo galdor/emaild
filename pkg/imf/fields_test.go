@@ -10,7 +10,10 @@ func TestReadReturnPathField(t *testing.T) {
 	g.GenerateAndTestFieldN(t, "Return-Path")
 }
 
-// TODO Received
+func TestReadReceivedField(t *testing.T) {
+	g := NewTestMessageGenerator()
+	g.GenerateAndTestFieldN(t, "Received")
+}
 
 func TestReadResentDateField(t *testing.T) {
 	g := NewTestMessageGenerator()

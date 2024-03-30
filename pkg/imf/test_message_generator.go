@@ -615,7 +615,7 @@ func (g *TestMessageGenerator) generateDomainName() string {
 	return g.generateDotAtom()
 }
 
-func (g *TestMessageGenerator) generateDomain() string {
+func (g *TestMessageGenerator) generateDomain() Domain {
 	var domain string
 
 	if g.maybe(0.5) {
@@ -624,7 +624,7 @@ func (g *TestMessageGenerator) generateDomain() string {
 		domain = g.generateDomainName()
 	}
 
-	return domain
+	return Domain(domain)
 }
 
 func (g *TestMessageGenerator) generateSpecificAddress() *SpecificAddress {
@@ -755,7 +755,7 @@ func (g *TestMessageGenerator) generateMessageId() MessageId {
 	}
 
 	if g.maybe(0.5) {
-		id.Right = g.generateDotAtom()
+		id.Right = Domain(g.generateDotAtom())
 	} else {
 		id.Right = g.generateDomain()
 	}
