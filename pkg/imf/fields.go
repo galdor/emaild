@@ -808,11 +808,10 @@ func (v OptionalFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *OptionalFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = OptionalFieldValue(g.generateUnstructured())
 }
 
 func (v OptionalFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*OptionalFieldValue)
+	g.checkUnstructured(t, string(*ev2), string(v))
 }

@@ -16,20 +16,22 @@ import (
 const NbFieldTests = 1000
 
 var (
-	VChars = CharRange(33, 126) // RFC 5234
+	vChars = CharRange(33, 126) // RFC 5234
 
-	NoWSCtlChars = CharRange(1, 8) + CharRange(11, 12) + CharRange(14, 31) +
+	noWSCtlChars = CharRange(1, 8) + CharRange(11, 12) + CharRange(14, 31) +
 		CharRange(127, 127)
+
+	fieldChars = CharRange(33, 57) + CharRange(59, 126)
 
 	atomChars = CharRange('a', 'z') + CharRange('A', 'Z') +
 		CharRange('0', '9') + "!#$%&'*+-/=?^_`{|}~"
 
 	quotedStringChars = CharRange(33, 39) + CharRange(42, 91) +
-		CharRange(93, 126) + NoWSCtlChars
+		CharRange(93, 126) + noWSCtlChars
 
 	commentChars = quotedStringChars
 
-	unstructuredChars = CharRange(0, 0) + NoWSCtlChars + VChars
+	unstructuredChars = CharRange(0, 0) + noWSCtlChars + vChars
 )
 
 type TestMessageGenerator struct {

@@ -1,6 +1,9 @@
 package imf
 
-import "testing"
+import (
+	"math/rand"
+	"testing"
+)
 
 func TestReadReturnPathField(t *testing.T) {
 	g := NewTestMessageGenerator()
@@ -109,4 +112,20 @@ func TestReadKeywordsField(t *testing.T) {
 	g.GenerateAndTestFieldN(t, "Keywords")
 }
 
-// TODO Optional fields
+func TestReadOptionalField(t *testing.T) {
+	g := NewTestMessageGenerator()
+
+	for i := 0; i < NbFieldTests; i++ {
+		// We always use 'X' as first character to make sure to never generate
+		// an existing non-optional field.
+
+		name := make([]byte, rand.Intn(16)+1)
+		name[0] = 'X'
+
+		for i := 1; i < len(name); i++ {
+			name[i] = fieldChars[rand.Intn(len(fieldChars))]
+		}
+
+		g.GenerateAndTestField(t, string(name))
+	}
+}
