@@ -51,6 +51,15 @@ func IsAtomChar(c byte) bool {
 		c == '~'
 }
 
+func IsWSCtlChar(c byte) bool {
+	return (c >= 1 && c <= 8) || (c >= 11 && c <= 12) || (c >= 14 && c <= 31) ||
+		c == 127
+}
+
+func IsDomainLiteralChar(c byte) bool {
+	return (c >= 33 && c <= 90) || (c >= 94 && c <= 126) || IsWSCtlChar(c)
+}
+
 func IsAtom(s string) bool {
 	// RFC 5322 3.2.3. Atom.
 	if len(s) == 0 {

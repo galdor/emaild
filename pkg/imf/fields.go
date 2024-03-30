@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"testing"
 	"time"
 )
 
@@ -60,8 +61,8 @@ func (v *ReturnPathFieldValue) testGenerate(g *TestMessageGenerator) {
 	g.writeString(">")
 }
 
-func (v ReturnPathFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	g.checkSpecificAddress(ev.(*ReturnPathFieldValue).Address, v.Address)
+func (v ReturnPathFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
+	g.checkSpecificAddress(t, ev.(*ReturnPathFieldValue).Address, v.Address)
 }
 
 // Received
@@ -85,7 +86,7 @@ func (v *ReceivedFieldValue) Read(r *DataReader) error {
 
 	r2 := NewDataReader(r.ReadFromChar(';'))
 
-	if err := r2.SkipCFWS(); err != nil {
+	if _, err := r2.ReadCFWS(); err != nil {
 		return err
 	}
 
@@ -113,7 +114,7 @@ func (v *ReceivedFieldValue) testGenerate(g *TestMessageGenerator) {
 	panic("not implemented")
 }
 
-func (v ReceivedFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ReceivedFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	// TODO
 	panic("not implemented")
 }
@@ -144,8 +145,8 @@ func (v *ResentDateFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ResentDateFieldValue(g.generateDate())
 }
 
-func (v ResentDateFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	g.checkDate(time.Time(*ev.(*ResentDateFieldValue)), time.Time(v))
+func (v ResentDateFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
+	g.checkDate(t, time.Time(*ev.(*ResentDateFieldValue)), time.Time(v))
 }
 
 // Resent-From
@@ -179,9 +180,9 @@ func (v *ResentFromFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ResentFromFieldValue(g.generateAddresses(false))
 }
 
-func (v ResentFromFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ResentFromFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ResentFromFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Sender
@@ -214,8 +215,8 @@ func (v *ResentSenderFieldValue) testGenerate(g *TestMessageGenerator) {
 	g.generateAddress()
 }
 
-func (v ResentSenderFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	g.checkAddress(ev.(*ResentSenderFieldValue).Address, v.Address)
+func (v ResentSenderFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
+	g.checkAddress(t, ev.(*ResentSenderFieldValue).Address, v.Address)
 }
 
 // Resent-To
@@ -247,9 +248,9 @@ func (v *ResentToFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ResentToFieldValue(g.generateAddresses(false))
 }
 
-func (v ResentToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ResentToFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ResentToFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Cc
@@ -281,9 +282,9 @@ func (v *ResentCcFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ResentCcFieldValue(g.generateAddresses(false))
 }
 
-func (v ResentCcFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ResentCcFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ResentCcFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Bcc
@@ -313,9 +314,9 @@ func (v *ResentBccFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ResentBccFieldValue(g.generateAddresses(true))
 }
 
-func (v ResentBccFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ResentBccFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ResentBccFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Resent-Message-ID
@@ -343,9 +344,9 @@ func (v *ResentMessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ResentMessageIdFieldValue(g.generateMessageId())
 }
 
-func (v ResentMessageIdFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ResentMessageIdFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ResentMessageIdFieldValue)
-	g.checkMessageId(MessageId(*ev2), MessageId(v))
+	g.checkMessageId(t, MessageId(*ev2), MessageId(v))
 }
 
 // Date
@@ -374,8 +375,8 @@ func (v *DateFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = DateFieldValue(g.generateDate())
 }
 
-func (v DateFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	g.checkDate(time.Time(*ev.(*DateFieldValue)), time.Time(v))
+func (v DateFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
+	g.checkDate(t, time.Time(*ev.(*DateFieldValue)), time.Time(v))
 }
 
 // From
@@ -409,9 +410,9 @@ func (v *FromFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = FromFieldValue(g.generateAddresses(false))
 }
 
-func (v FromFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v FromFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*FromFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Sender
@@ -443,8 +444,8 @@ func (v *SenderFieldValue) testGenerate(g *TestMessageGenerator) {
 	g.generateAddress()
 }
 
-func (v SenderFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
-	g.checkAddress(ev.(*SenderFieldValue).Address, v.Address)
+func (v SenderFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
+	g.checkAddress(t, ev.(*SenderFieldValue).Address, v.Address)
 }
 
 // Reply-To
@@ -476,9 +477,9 @@ func (v *ReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ReplyToFieldValue(g.generateAddresses(false))
 }
 
-func (v ReplyToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ReplyToFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ReplyToFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // To
@@ -510,9 +511,9 @@ func (v *ToFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ToFieldValue(g.generateAddresses(false))
 }
 
-func (v ToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ToFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ToFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Cc
@@ -544,9 +545,9 @@ func (v *CcFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = CcFieldValue(g.generateAddresses(false))
 }
 
-func (v CcFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v CcFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*CcFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Bcc
@@ -575,9 +576,9 @@ func (v *BccFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = BccFieldValue(g.generateAddresses(true))
 }
 
-func (v BccFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v BccFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*BccFieldValue)
-	g.checkAddresses(Addresses(*ev2), Addresses(v))
+	g.checkAddresses(t, Addresses(*ev2), Addresses(v))
 }
 
 // Message-ID
@@ -605,9 +606,9 @@ func (v *MessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = MessageIdFieldValue(g.generateMessageId())
 }
 
-func (v MessageIdFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v MessageIdFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*MessageIdFieldValue)
-	g.checkMessageId(MessageId(*ev2), MessageId(v))
+	g.checkMessageId(t, MessageId(*ev2), MessageId(v))
 }
 
 // In-Reply-To
@@ -639,9 +640,9 @@ func (v *InReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = InReplyToFieldValue(g.generateMessageIds())
 }
 
-func (v InReplyToFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v InReplyToFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*InReplyToFieldValue)
-	g.checkMessageIds(MessageIds(*ev2), MessageIds(v))
+	g.checkMessageIds(t, MessageIds(*ev2), MessageIds(v))
 }
 
 // References
@@ -673,9 +674,9 @@ func (v *ReferencesFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = ReferencesFieldValue(g.generateMessageIds())
 }
 
-func (v ReferencesFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v ReferencesFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*ReferencesFieldValue)
-	g.checkMessageIds(MessageIds(*ev2), MessageIds(v))
+	g.checkMessageIds(t, MessageIds(*ev2), MessageIds(v))
 }
 
 // Subject
@@ -704,9 +705,9 @@ func (v *SubjectFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = SubjectFieldValue(g.generateUnstructured())
 }
 
-func (v SubjectFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v SubjectFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*SubjectFieldValue)
-	g.checkUnstructured(string(*ev2), string(v))
+	g.checkUnstructured(t, string(*ev2), string(v))
 }
 
 // Comments
@@ -735,9 +736,9 @@ func (v *CommentsFieldValue) testGenerate(g *TestMessageGenerator) {
 	*v = CommentsFieldValue(g.generateUnstructured())
 }
 
-func (v CommentsFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v CommentsFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	ev2 := ev.(*CommentsFieldValue)
-	g.checkUnstructured(string(*ev2), string(v))
+	g.checkUnstructured(t, string(*ev2), string(v))
 }
 
 // Keywords
@@ -780,7 +781,7 @@ func (v *KeywordsFieldValue) testGenerate(g *TestMessageGenerator) {
 	panic("not implemented")
 }
 
-func (v KeywordsFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v KeywordsFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	// TODO
 	panic("not implemented")
 }
@@ -812,7 +813,7 @@ func (v *OptionalFieldValue) testGenerate(g *TestMessageGenerator) {
 	panic("not implemented")
 }
 
-func (v OptionalFieldValue) testCheck(g *TestMessageGenerator, ev FieldValue) {
+func (v OptionalFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
 	// TODO
 	panic("not implemented")
 }

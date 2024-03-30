@@ -58,23 +58,29 @@ func (r *DataReader) SkipByte(c byte) bool {
 	return true
 }
 
-func (r *DataReader) MaybeSkipFWS() error {
+func (r *DataReader) ReadFWS() ([]byte, error) {
+	var ws []byte
+
 	for len(r.buf) > 0 {
 		if IsWSP(r.buf[0]) {
+			ws = append(ws, r.buf[0])
+
 			r.Skip(1)
 		} else if r.buf[0] == '\r' {
 			if len(r.buf) < 3 {
-				return fmt.Errorf("truncated fws sequence")
+				return nil, fmt.Errorf("truncated fws sequence")
 			}
 
 			if r.buf[1] != '\n' {
-				return fmt.Errorf("missing lf character after cr character")
+				return nil, fmt.Errorf("missing lf character after cr character")
 			}
 
 			if !IsWSP(r.buf[2]) {
-				return fmt.Errorf("invalid fws sequence: missing whitespace after " +
-					"crlf sequence")
+				return nil, fmt.Errorf("invalid fws sequence: missing " +
+					"whitespace after crlf sequence")
 			}
+
+			ws = append(ws, r.buf[2])
 
 			r.Skip(3)
 		} else {
@@ -82,27 +88,32 @@ func (r *DataReader) MaybeSkipFWS() error {
 		}
 	}
 
-	return nil
+	return ws, nil
 }
 
-func (r *DataReader) SkipCFWS() error {
+func (r *DataReader) ReadCFWS() ([]byte, error) {
+	var ws []byte
+
 	for len(r.buf) > 0 {
 		if !IsWSP(r.buf[0]) && r.buf[0] != '\r' && r.buf[0] != '(' {
 			break
 		}
 
-		if err := r.MaybeSkipFWS(); err != nil {
-			return err
+		ws2, err := r.ReadFWS()
+		if err != nil {
+			return nil, err
 		}
+
+		ws = append(ws, ws2...)
 
 		if r.StartsWithByte('(') {
 			if err := r.SkipComment(0); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	return nil
+	return ws, nil
 }
 
 func (r *DataReader) SkipComment(depth int) error {
@@ -113,7 +124,7 @@ func (r *DataReader) SkipComment(depth int) error {
 	r.SkipByte('(')
 
 	for {
-		if err := r.MaybeSkipFWS(); err != nil {
+		if _, err := r.ReadFWS(); err != nil {
 			return err
 		}
 
@@ -190,9 +201,12 @@ func (r *DataReader) ReadUnstructured() ([]byte, error) {
 	var value []byte
 
 	for {
-		if err := r.MaybeSkipFWS(); err != nil {
+		ws, err := r.ReadFWS()
+		if err != nil {
 			return nil, err
 		}
+
+		value = append(value, ws...)
 
 		if len(r.buf) == 0 {
 			break
@@ -206,7 +220,7 @@ func (r *DataReader) ReadUnstructured() ([]byte, error) {
 }
 
 func (r *DataReader) ReadAtom() ([]byte, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -249,7 +263,7 @@ func (r *DataReader) ReadDotAtom() ([]byte, error) {
 }
 
 func (r *DataReader) ReadQuotedString() ([]byte, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -260,9 +274,11 @@ func (r *DataReader) ReadQuotedString() ([]byte, error) {
 	var value []byte
 
 	for {
-		if err := r.MaybeSkipFWS(); err != nil {
+		ws, err := r.ReadFWS()
+		if err != nil {
 			return nil, err
 		}
+		value = append(value, ws...)
 
 		if len(r.buf) == 0 {
 			return nil, fmt.Errorf("missing final '\"' character")
@@ -288,7 +304,7 @@ func (r *DataReader) ReadQuotedString() ([]byte, error) {
 }
 
 func (r *DataReader) ReadWord() ([]byte, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -325,7 +341,7 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 	}
 
 	for {
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -375,7 +391,7 @@ func (r *DataReader) ReadPhraseList() ([]string, error) {
 	var phrases []string
 
 	for {
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -395,7 +411,7 @@ func (r *DataReader) ReadPhraseList() ([]string, error) {
 
 		phrases = append(phrases, string(phrase))
 
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -419,7 +435,7 @@ func (r *DataReader) ReadLocalPart() ([]byte, error) {
 	var value []byte
 
 	for len(r.buf) > 0 {
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -427,17 +443,15 @@ func (r *DataReader) ReadLocalPart() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		value = append(value, word...)
 
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
 		if !r.SkipByte('.') {
 			break
 		}
-
 		value = append(value, '.')
 	}
 
@@ -445,7 +459,7 @@ func (r *DataReader) ReadLocalPart() ([]byte, error) {
 }
 
 func (r *DataReader) ReadDomainLiteral() ([]byte, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -464,25 +478,19 @@ func (r *DataReader) ReadDomainLiteral() ([]byte, error) {
 		domain = append(domain, value...)
 	} else {
 		for {
-			if err := r.MaybeSkipFWS(); err != nil {
+			ws, err := r.ReadFWS()
+			if err != nil {
 				return nil, err
 			}
+			domain = append(domain, ws...)
 
 			if len(r.buf) == 0 || r.buf[0] == ']' {
 				break
 			}
 
-			// In theory we must support obs-NO-WS-CTL which contains ASCII
-			// control characters. No valid domain or IP address contains
-			// control characters, period. Accepting them is pretty much
-			// guaranteed to cause issues down the line.
-
-			c := r.buf[0]
-
-			valid := c >= 33 && c <= 90 || c >= 94 && c <= 126
-			if !valid {
+			if !IsDomainLiteralChar(r.buf[0]) {
 				return nil, fmt.Errorf("invalid character %s in domain "+
-					"literal", utils.QuoteByte(c))
+					"literal", utils.QuoteByte(r.buf[0]))
 			}
 
 			domain = append(domain, r.buf[0])
@@ -504,7 +512,7 @@ func (r *DataReader) ReadDomain() ([]byte, error) {
 	// Start by looking for a domain-literal. Note that it can contain a
 	// quoted string.
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -537,7 +545,7 @@ func (r *DataReader) ReadSpecificAddress() (*SpecificAddress, error) {
 		return nil, fmt.Errorf("invalid local part: %w", err)
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -545,7 +553,7 @@ func (r *DataReader) ReadSpecificAddress() (*SpecificAddress, error) {
 		return nil, fmt.Errorf("missing '@' character after local part")
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -563,7 +571,7 @@ func (r *DataReader) ReadSpecificAddress() (*SpecificAddress, error) {
 }
 
 func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -572,7 +580,7 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 			"address")
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -583,7 +591,7 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 
 	// TODO obs-route
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -592,7 +600,7 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 		return nil, fmt.Errorf("invalid specific address: %w", err)
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -605,7 +613,7 @@ func (r *DataReader) ReadAngleAddress(allowEmpty bool) (*SpecificAddress, error)
 }
 
 func (r *DataReader) ReadNamedAddress() (*Mailbox, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -620,7 +628,7 @@ func (r *DataReader) ReadNamedAddress() (*Mailbox, error) {
 		displayName = phrase
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -675,7 +683,7 @@ func (r *DataReader) ReadMailboxList(allowEmpty bool) ([]*Mailbox, error) {
 	var mailboxes []*Mailbox
 
 	for {
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -695,7 +703,7 @@ func (r *DataReader) ReadMailboxList(allowEmpty bool) ([]*Mailbox, error) {
 
 		mailboxes = append(mailboxes, mailbox)
 
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -712,7 +720,7 @@ func (r *DataReader) ReadMailboxList(allowEmpty bool) ([]*Mailbox, error) {
 }
 
 func (r *DataReader) ReadGroup() (*Group, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -721,7 +729,7 @@ func (r *DataReader) ReadGroup() (*Group, error) {
 		return nil, fmt.Errorf("invalid display name: %w", err)
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -729,7 +737,7 @@ func (r *DataReader) ReadGroup() (*Group, error) {
 		return nil, fmt.Errorf("missing ':' character after display name")
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -741,7 +749,7 @@ func (r *DataReader) ReadGroup() (*Group, error) {
 		return nil, fmt.Errorf("invalid mailbox list: %w", err)
 	}
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -788,7 +796,7 @@ func (r *DataReader) ReadAddressList(allowEmpty bool) ([]Address, error) {
 	var addrs []Address
 
 	for {
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -808,7 +816,7 @@ func (r *DataReader) ReadAddressList(allowEmpty bool) ([]Address, error) {
 
 		addrs = append(addrs, addr)
 
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -825,7 +833,7 @@ func (r *DataReader) ReadAddressList(allowEmpty bool) ([]Address, error) {
 }
 
 func (r *DataReader) ReadMessageId() (*MessageId, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -835,7 +843,7 @@ func (r *DataReader) ReadMessageId() (*MessageId, error) {
 	}
 
 	// Left part
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -845,7 +853,7 @@ func (r *DataReader) ReadMessageId() (*MessageId, error) {
 	}
 
 	// Separator
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -854,7 +862,7 @@ func (r *DataReader) ReadMessageId() (*MessageId, error) {
 	}
 
 	// Right part
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -864,7 +872,7 @@ func (r *DataReader) ReadMessageId() (*MessageId, error) {
 	}
 
 	// End delimiter
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -886,7 +894,7 @@ func (r *DataReader) ReadMessageIdList(allowEmpty bool) (MessageIds, error) {
 	var ids MessageIds
 
 	for {
-		if err := r.SkipCFWS(); err != nil {
+		if _, err := r.ReadCFWS(); err != nil {
 			return nil, err
 		}
 
@@ -911,7 +919,7 @@ func (r *DataReader) ReadMessageIdList(allowEmpty bool) (MessageIds, error) {
 
 func (r *DataReader) ReadDateTime() (*time.Time, error) {
 	// Optional day name
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -950,7 +958,7 @@ func (r *DataReader) ReadDateTime() (*time.Time, error) {
 	}
 
 	// Separator
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -965,7 +973,7 @@ func (r *DataReader) ReadDateTime() (*time.Time, error) {
 	}
 
 	// Separator and optional second
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 
@@ -994,7 +1002,7 @@ func (r *DataReader) MaybeReadDayName() (string, error) {
 
 	name := r.ReadWhile(IsAlphaChar)
 
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return "", err
 	}
 
@@ -1006,7 +1014,7 @@ func (r *DataReader) MaybeReadDayName() (string, error) {
 }
 
 func (r *DataReader) ReadInteger(maxNbDigits int, minValue, maxValue int64) (int, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return 0, err
 	}
 
@@ -1033,7 +1041,7 @@ func (r *DataReader) ReadDay() (int, error) {
 }
 
 func (r *DataReader) ReadMonth() (time.Month, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return 0, err
 	}
 
@@ -1082,7 +1090,7 @@ func (r *DataReader) ReadMonth() (time.Month, error) {
 }
 
 func (r *DataReader) ReadYear() (int, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return 0, err
 	}
 
@@ -1147,7 +1155,7 @@ func (r *DataReader) ReadSecond() (int, error) {
 }
 
 func (r *DataReader) ReadTimezone() (*time.Location, error) {
-	if err := r.SkipCFWS(); err != nil {
+	if _, err := r.ReadCFWS(); err != nil {
 		return nil, err
 	}
 

@@ -33,59 +33,57 @@ var (
 )
 
 type TestMessageGenerator struct {
-	t *testing.T
-
 	buf bytes.Buffer
 }
 
-func NewTestMessageGenerator(t *testing.T) *TestMessageGenerator {
-	return &TestMessageGenerator{
-		t: t,
-	}
+func NewTestMessageGenerator() *TestMessageGenerator {
+	return &TestMessageGenerator{}
 }
 
-func (g *TestMessageGenerator) GenerateAndTestMessage() {
+func (g *TestMessageGenerator) GenerateAndTestMessage(t *testing.T) {
 	g.buf.Reset()
 
-	eMsg := g.generateMessage()
+	eMsg := g.generateMessage(t)
 
 	r := NewMessageReader()
 	msg, err := r.ReadAll(g.buf.Bytes())
 	if err != nil {
-		g.t.Fatalf("%v", err)
+		t.Fatalf("%v", err)
 	}
 
-	g.checkMessage(eMsg, msg)
+	g.checkMessage(t, eMsg, msg)
 }
 
-func (g *TestMessageGenerator) GenerateAndTestFieldN(name string) {
+func (g *TestMessageGenerator) GenerateAndTestFieldN(t *testing.T, name string) {
 	for i := 0; i < NbFieldTests; i++ {
-		g.GenerateAndTestField(name)
+		g.GenerateAndTestField(t, name)
 	}
 }
 
-func (g *TestMessageGenerator) GenerateAndTestField(name string) {
+func (g *TestMessageGenerator) GenerateAndTestField(t *testing.T, name string) {
 	g.buf.Reset()
 
 	eField := g.generateField(name)
 
-	g.t.Logf("field: %q", g.buf.String())
+	t.Run(name, func(t *testing.T) {
+		t.Logf("field: %q", g.buf.String())
 
-	r := NewMessageReader()
-	msg, err := r.ReadAll(g.buf.Bytes())
-	if err != nil {
-		g.t.Fatalf("%v", err)
-	}
+		r := NewMessageReader()
+		msg, err := r.ReadAll(g.buf.Bytes())
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
 
-	if len(msg.Header) == 0 {
-		g.t.Errorf("parsing succeeded but no field was found")
-		return
-	}
+		if len(msg.Header) == 0 {
+			t.Errorf("parsing succeeded but no field was found")
+			return
+		}
 
-	g.checkField(eField, msg.Header[0])
+		g.checkField(t, eField, msg.Header[0])
+	})
 }
 
-func (g *TestMessageGenerator) generateMessage() *Message {
+func (g *TestMessageGenerator) generateMessage(t *testing.T) *Message {
 	var msg Message
 
 	// TODO
@@ -162,41 +160,37 @@ func (g *TestMessageGenerator) generateField(name string) *Field {
 
 	field.Value.testGenerate(g)
 
-	if g.maybe(0.25) {
-		g.generateFWS()
-	}
-
 	g.writeString("\r\n")
 
 	return &field
 }
 
-func (g *TestMessageGenerator) checkMessage(eMsg, msg *Message) {
+func (g *TestMessageGenerator) checkMessage(t *testing.T, eMsg, msg *Message) {
 	if len(msg.Header) == len(eMsg.Header) {
 		for i, efield := range eMsg.Header {
 			field := msg.Header[i]
-			g.checkField(efield, field)
+			g.checkField(t, efield, field)
 		}
 	} else {
-		g.t.Errorf("header contains %d fields but should contain %d fields",
+		t.Errorf("header contains %d fields but should contain %d fields",
 			len(msg.Header), len(eMsg.Header))
 	}
 
 	eBody := string(eMsg.Body)
 	body := string(msg.Body)
 	if body != eBody {
-		g.t.Errorf("body is %q but should be %q", body, eBody)
+		t.Errorf("body is %q but should be %q", body, eBody)
 	}
 }
 
-func (g *TestMessageGenerator) checkField(eField, field *Field) {
+func (g *TestMessageGenerator) checkField(t *testing.T, eField, field *Field) {
 	if field.Name != eField.Name {
-		g.t.Errorf("field is named %q but should be named %q",
+		t.Errorf("field is named %q but should be named %q",
 			eField.Name, field.Name)
 		return
 	}
 
-	field.Value.testCheck(g, eField.Value)
+	field.Value.testCheck(t, g, eField.Value)
 }
 
 func (g *TestMessageGenerator) maybe(p float32) bool {
@@ -226,26 +220,30 @@ func (g *TestMessageGenerator) writeString(s string) string {
 	return s
 }
 
-func (g *TestMessageGenerator) generateWS() {
+func (g *TestMessageGenerator) generateWS() string {
 	if g.maybe(0.1) {
-		g.writeString("\t")
+		return g.writeString("\t")
 	} else {
-		g.writeString(" ")
+		return g.writeString(" ")
 	}
 }
 
-func (g *TestMessageGenerator) generateFWS() {
+func (g *TestMessageGenerator) generateFWS() string {
+	var ws string
+
 	for i := 0; i < rand.Intn(3)+1; i++ {
-		g.generateWS()
+		ws += g.generateWS()
 	}
 
 	for i := 0; i < rand.Intn(2); i++ {
 		g.writeString("\r\n")
 
 		for i := 0; i < rand.Intn(3)+1; i++ {
-			g.generateWS()
+			ws += g.generateWS()
 		}
 	}
+
+	return ws
 }
 
 func (g *TestMessageGenerator) generateComment() {
@@ -278,22 +276,26 @@ func (g *TestMessageGenerator) generateComment() {
 	g.writeByte(')')
 }
 
-func (g *TestMessageGenerator) generateCFWS() {
+func (g *TestMessageGenerator) generateCFWS() string {
+	var ws string
+
 	if g.maybe(0.1) {
 		for i := 0; i < rand.Intn(2)+1; i++ {
 			if g.maybe(0.5) {
-				g.generateFWS()
+				ws += g.generateFWS()
 			}
 
 			g.generateComment()
 		}
 
 		if g.maybe(0.5) {
-			g.generateFWS()
+			ws += g.generateFWS()
 		}
 	} else {
-		g.generateFWS()
+		ws += g.generateFWS()
 	}
+
+	return ws
 }
 
 func (g *TestMessageGenerator) generateAtom() string {
@@ -324,13 +326,13 @@ func (g *TestMessageGenerator) generateDotAtom() string {
 }
 
 func (g *TestMessageGenerator) generateQuotedString() string {
-	var quotedString []byte
+	var qs bytes.Buffer
 
 	g.writeByte('"')
 
 	for i := 0; i < rand.Intn(8); i++ {
 		if g.maybe(0.05) {
-			g.generateFWS()
+			qs.WriteString(g.generateFWS())
 		}
 
 		c := quotedStringChars[rand.Intn(len(quotedStringChars))]
@@ -340,16 +342,16 @@ func (g *TestMessageGenerator) generateQuotedString() string {
 		}
 
 		g.writeByte(c)
-		quotedString = append(quotedString, c)
+		qs.WriteByte(c)
 	}
 
 	if g.maybe(0.05) {
-		g.generateFWS()
+		qs.WriteString(g.generateFWS())
 	}
 
 	g.writeByte('"')
 
-	return string(quotedString)
+	return qs.String()
 }
 
 func (g *TestMessageGenerator) generateWord() string {
@@ -381,20 +383,20 @@ func (g *TestMessageGenerator) generatePhrase() string {
 }
 
 func (g *TestMessageGenerator) generateUnstructured() string {
-	data := make([]byte, rand.Intn(120))
+	var buf bytes.Buffer
 
-	for i := 0; i < len(data); i++ {
-		if g.maybe(0.01) {
-			g.generateFWS()
+	for i := 0; i < rand.Intn(120); i++ {
+		if i > 0 && g.maybe(0.01) {
+			buf.WriteString(g.generateFWS())
 		}
 
 		c := unstructuredChars[rand.Intn(len(unstructuredChars))]
 
 		g.writeByte(c)
-		data[i] = c
+		buf.WriteByte(c)
 	}
 
-	return string(data)
+	return buf.String()
 }
 
 func (g *TestMessageGenerator) generateDate() time.Time {
@@ -531,16 +533,8 @@ func (g *TestMessageGenerator) generateLocalPart() string {
 		buf.WriteString(g.generateWord())
 
 		for i := 0; i < rand.Intn(3); i++ {
-			if g.maybe(0.05) {
-				g.generateCFWS()
-			}
-
 			g.writeByte('.')
 			buf.WriteByte('.')
-
-			if g.maybe(0.05) {
-				g.generateCFWS()
-			}
 
 			buf.WriteString(g.generateWord())
 		}
@@ -572,20 +566,26 @@ func (g *TestMessageGenerator) generateDomainLiteral() string {
 	buf.WriteByte(']')
 
 	s := buf.String()
+	buf.Reset()
+
+	if g.maybe(0.05) {
+		g.generateCFWS()
+	}
 
 	for i := range s {
 		if i > 0 && g.maybe(0.05) {
-			g.generateFWS()
+			buf.WriteString(g.generateFWS())
 		}
 
 		g.writeByte(s[i])
+		buf.WriteByte(s[i])
 	}
 
 	if g.maybe(0.05) {
-		g.generateFWS()
+		g.generateCFWS()
 	}
 
-	return s
+	return buf.String()
 }
 
 func (g *TestMessageGenerator) generateDomainName() string {
@@ -759,48 +759,48 @@ func (g *TestMessageGenerator) generateMessageIds() MessageIds {
 	return ids
 }
 
-func (g *TestMessageGenerator) checkUnstructured(eS, s string) bool {
+func (g *TestMessageGenerator) checkUnstructured(t *testing.T, eS, s string) bool {
 	if s != eS {
-		g.t.Errorf("string is %q but should be %q", s, eS)
+		t.Errorf("string is %q but should be %q", s, eS)
 		return false
 	}
 
 	return true
 }
 
-func (g *TestMessageGenerator) checkDate(eDate, date time.Time) bool {
+func (g *TestMessageGenerator) checkDate(t *testing.T, eDate, date time.Time) bool {
 	dateString := date.Format(time.RFC3339)
 	eDateString := eDate.Format(time.RFC3339)
 
 	if dateString != eDateString {
-		g.t.Errorf("date is %q but should be %q", dateString, eDateString)
+		t.Errorf("date is %q but should be %q", dateString, eDateString)
 		return false
 	}
 
 	return true
 }
 
-func (g *TestMessageGenerator) checkSpecificAddress(eAddr, addr *SpecificAddress) bool {
+func (g *TestMessageGenerator) checkSpecificAddress(t *testing.T, eAddr, addr *SpecificAddress) bool {
 	valid := true
 
 	switch {
 	case addr == nil && eAddr != nil:
-		g.t.Errorf("address is null but should be %#v", eAddr)
+		t.Errorf("address is null but should be %#v", eAddr)
 		valid = false
 
 	case addr != nil && eAddr == nil:
-		g.t.Errorf("address is %#v but should be null", addr)
+		t.Errorf("address is %#v but should be null", addr)
 		valid = false
 
 	case addr != nil && eAddr != nil:
 		if addr.LocalPart != eAddr.LocalPart {
-			g.t.Errorf("local part is %q but should be %q",
+			t.Errorf("local part is %q but should be %q",
 				addr.LocalPart, eAddr.LocalPart)
 			valid = false
 		}
 
 		if addr.Domain != eAddr.Domain {
-			g.t.Errorf("domain is %q but should be %q",
+			t.Errorf("domain is %q but should be %q",
 				addr.Domain, eAddr.Domain)
 			valid = false
 		}
@@ -809,7 +809,7 @@ func (g *TestMessageGenerator) checkSpecificAddress(eAddr, addr *SpecificAddress
 	return valid
 }
 
-func (g *TestMessageGenerator) checkAddress(eAddr, addr Address) bool {
+func (g *TestMessageGenerator) checkAddress(t *testing.T, eAddr, addr Address) bool {
 	mailbox, isMailbox := addr.(*Mailbox)
 	group, isGroup := addr.(*Group)
 
@@ -817,12 +817,12 @@ func (g *TestMessageGenerator) checkAddress(eAddr, addr Address) bool {
 	eGroup, isEGroup := addr.(*Group)
 
 	if isGroup && isEMailbox {
-		g.t.Errorf("address is a group but should be a mailbox")
+		t.Errorf("address is a group but should be a mailbox")
 		return false
 	}
 
 	if isMailbox && isEGroup {
-		g.t.Errorf("address is a mailbox but should be a group")
+		t.Errorf("address is a mailbox but should be a group")
 		return false
 	}
 
@@ -831,16 +831,16 @@ func (g *TestMessageGenerator) checkAddress(eAddr, addr Address) bool {
 	checkDisplayNames := func(eName, name *string, label string) {
 		switch {
 		case name == nil && eName != nil:
-			g.t.Errorf("%s does not have a display name but should have "+
+			t.Errorf("%s does not have a display name but should have "+
 				"display name %q", label, *eName)
 			valid = false
 		case name != nil && eName == nil:
-			g.t.Errorf("%s has display name %q but should not have one ",
+			t.Errorf("%s has display name %q but should not have one ",
 				label, *name)
 			valid = false
 		case name != nil && eName != nil:
 			if *name != *eName {
-				g.t.Errorf("%s display name is %q but should be %q",
+				t.Errorf("%s display name is %q but should be %q",
 					label, *name, *eName)
 				valid = false
 			}
@@ -856,9 +856,9 @@ func (g *TestMessageGenerator) checkAddress(eAddr, addr Address) bool {
 	return valid
 }
 
-func (g *TestMessageGenerator) checkAddresses(eAddrs, addrs Addresses) bool {
+func (g *TestMessageGenerator) checkAddresses(t *testing.T, eAddrs, addrs Addresses) bool {
 	if len(addrs) != len(eAddrs) {
-		g.t.Errorf("list contains %d addresses but should contain %d addresses",
+		t.Errorf("list contains %d addresses but should contain %d addresses",
 			len(addrs), len(eAddrs))
 		return false
 	}
@@ -868,34 +868,35 @@ func (g *TestMessageGenerator) checkAddresses(eAddrs, addrs Addresses) bool {
 	for i, addr := range addrs {
 		eAddr := eAddrs[i]
 
-		if !g.checkAddress(eAddr, addr) {
-			g.t.Errorf("invalid address at index %d:", i)
-			valid = false
-		}
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			if !g.checkAddress(t, eAddr, addr) {
+				valid = false
+			}
+		})
 	}
 
 	return valid
 }
 
-func (g *TestMessageGenerator) checkMessageId(eId, id MessageId) bool {
+func (g *TestMessageGenerator) checkMessageId(t *testing.T, eId, id MessageId) bool {
 	valid := true
 
 	if id.Left != eId.Left {
-		g.t.Errorf("left part is %q but should be %q", id.Left, eId.Left)
+		t.Errorf("left part is %q but should be %q", id.Left, eId.Left)
 		valid = false
 	}
 
 	if id.Right != eId.Right {
-		g.t.Errorf("right part is %q but should be %q", id.Right, eId.Right)
+		t.Errorf("right part is %q but should be %q", id.Right, eId.Right)
 		valid = false
 	}
 
 	return valid
 }
 
-func (g *TestMessageGenerator) checkMessageIds(eIds, ids MessageIds) bool {
+func (g *TestMessageGenerator) checkMessageIds(t *testing.T, eIds, ids MessageIds) bool {
 	if len(ids) != len(eIds) {
-		g.t.Errorf("list contains %d ids but should contain %d ids",
+		t.Errorf("list contains %d ids but should contain %d ids",
 			len(ids), len(eIds))
 		return false
 	}
@@ -905,10 +906,11 @@ func (g *TestMessageGenerator) checkMessageIds(eIds, ids MessageIds) bool {
 	for i, id := range ids {
 		eId := eIds[i]
 
-		if !g.checkMessageId(eId, id) {
-			g.t.Errorf("invalid id at index %d:", i)
-			valid = false
-		}
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			if !g.checkMessageId(t, eId, id) {
+				valid = false
+			}
+		})
 	}
 
 	return valid

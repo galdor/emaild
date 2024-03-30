@@ -1,6 +1,9 @@
 package imf
 
-import "fmt"
+import (
+	"fmt"
+	"testing"
+)
 
 // RFC 5322 Internet Message Format
 
@@ -24,7 +27,7 @@ type FieldValue interface {
 	Write(*DataWriter) error
 
 	testGenerate(*TestMessageGenerator)
-	testCheck(*TestMessageGenerator, FieldValue)
+	testCheck(*testing.T, *TestMessageGenerator, FieldValue)
 }
 
 type Address interface{} // Mailbox or Group
