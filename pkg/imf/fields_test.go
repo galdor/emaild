@@ -104,6 +104,9 @@ func TestReadCommentsField(t *testing.T) {
 	g.GenerateAndTestFieldN(t, "Comments")
 }
 
-// TODO Keywords
+func TestReadKeywordsField(t *testing.T) {
+	g := NewTestMessageGenerator()
+	g.GenerateAndTestFieldN(t, "Keywords")
+}
 
 // TODO Optional fields

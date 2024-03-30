@@ -304,7 +304,7 @@ func (r *DataReader) ReadQuotedString() ([]byte, error) {
 }
 
 func (r *DataReader) ReadWord() ([]byte, error) {
-	if _, err := r.ReadCFWS(); err != nil {
+	if _, err := r.ReadFWS(); err != nil {
 		return nil, err
 	}
 
@@ -325,25 +325,20 @@ func (r *DataReader) ReadWord() ([]byte, error) {
 }
 
 func (r *DataReader) ReadPhrase() ([]byte, error) {
-	var value []byte
-	nbWords := 0
+	var phrase []byte
 
-	appendWord := func(word []byte) {
-		nbWords++
-
-		if len(word) > 0 {
-			if len(value) > 0 {
-				value = append(value, ' ')
-			}
-
-			value = append(value, word...)
-		}
+	word, err := r.ReadWord()
+	if err != nil {
+		return nil, fmt.Errorf("invalid word: %w", err)
 	}
+	phrase = append(phrase, word...)
 
 	for {
-		if _, err := r.ReadCFWS(); err != nil {
+		ws, err := r.ReadCFWS()
+		if err != nil {
 			return nil, err
 		}
+		phrase = append(phrase, ws...)
 
 		if len(r.buf) == 0 {
 			break
@@ -352,27 +347,20 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 		// With obsolete syntax, a phrase element can be a single '.' character
 		// which is not a valid word, so we have to handle it separately.
 		if r.buf[0] == '.' {
-			appendWord([]byte{'.'})
+			phrase = append(phrase, '.')
 			r.Skip(1)
 			continue
 		}
 
 		var finished bool
 
-		err := r.Try(func() error {
+		err = r.Try(func() error {
 			word, err := r.ReadWord()
 			if err != nil {
-				// Phrases must contain at least one word
-				if nbWords == 0 {
-					return fmt.Errorf("invalid word: %w", err)
-				}
-
 				finished = true
 			}
 
-			// Note that a word can be empty if it is a quoted string
-			appendWord(word)
-
+			phrase = append(phrase, word...)
 			return nil
 		})
 		if err != nil {
@@ -384,7 +372,7 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 		}
 	}
 
-	return value, nil
+	return phrase, nil
 }
 
 func (r *DataReader) ReadPhraseList() ([]string, error) {

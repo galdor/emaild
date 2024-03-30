@@ -777,13 +777,12 @@ func (v KeywordsFieldValue) Write(w *DataWriter) error {
 }
 
 func (v *KeywordsFieldValue) testGenerate(g *TestMessageGenerator) {
-	// TODO
-	panic("not implemented")
+	*v = KeywordsFieldValue(g.generatePhrases())
 }
 
 func (v KeywordsFieldValue) testCheck(t *testing.T, g *TestMessageGenerator, ev FieldValue) {
-	// TODO
-	panic("not implemented")
+	ev2 := ev.(*KeywordsFieldValue)
+	g.checkPhrases(t, []string(*ev2), []string(v))
 }
 
 // Optional fields

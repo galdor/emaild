@@ -365,21 +365,42 @@ func (g *TestMessageGenerator) generateWord() string {
 func (g *TestMessageGenerator) generatePhrase() string {
 	var buf bytes.Buffer
 
-	for i := 1; i <= 1+rand.Intn(2); i++ {
-		if i > 1 {
-			g.generateFWS()
-			buf.WriteByte(' ')
-		}
+	buf.WriteString(g.generateWord())
 
-		if g.maybe(0.8) {
+	for i := 0; i < rand.Intn(3); i++ {
+		buf.WriteString(g.generateCFWS())
+
+		n := rand.Float32()
+		if n < 0.75 {
 			buf.WriteString(g.generateWord())
+		} else if n < 0.9 {
+			buf.WriteString(g.writeByte('.'))
 		} else {
-			g.writeByte('.')
-			buf.WriteByte('.')
+			// We already generated a CFWS at the beginning of the block
 		}
 	}
 
 	return buf.String()
+}
+
+func (g *TestMessageGenerator) generatePhrases() []string {
+	// Phrases can start and end with a CFWS element, and whitespace characters
+	// in this element are part of the phrase. As a result, we cannot generate
+	// extra FWS elements before or after a separator (comma) in the list
+	// because we would have no way to include them in the expect result for the
+	// previous phrase. It is not really a problem, especially given how
+	// ambiguous phrase parsing is anyway.
+
+	var phrases []string
+
+	phrases = append(phrases, g.generatePhrase())
+
+	for i := 0; i < rand.Intn(3); i++ {
+		g.writeByte(',')
+		phrases = append(phrases, g.generatePhrase())
+	}
+
+	return phrases
 }
 
 func (g *TestMessageGenerator) generateUnstructured() string {
@@ -757,6 +778,29 @@ func (g *TestMessageGenerator) generateMessageIds() MessageIds {
 	}
 
 	return ids
+}
+
+func (g *TestMessageGenerator) checkPhrases(t *testing.T, ePhrases, phrases []string) bool {
+	if len(phrases) != len(ePhrases) {
+		t.Errorf("list contains %d phrases but should contain %d phrases",
+			len(phrases), len(ePhrases))
+		return false
+	}
+
+	valid := true
+
+	for i, phrase := range phrases {
+		ePhrase := ePhrases[i]
+
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			if phrase != ePhrase {
+				t.Errorf("phrase is %q but should be %q", phrase, ePhrase)
+				valid = false
+			}
+		})
+	}
+
+	return valid
 }
 
 func (g *TestMessageGenerator) checkUnstructured(t *testing.T, eS, s string) bool {
