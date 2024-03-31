@@ -367,18 +367,35 @@ func (g *TestMessageGenerator) generateWord() string {
 func (g *TestMessageGenerator) generatePhrase() string {
 	var buf bytes.Buffer
 
+	// A phrase contains one ore more elements. The first element is always a
+	// word. Other elements are either words, the '.' character or CFWS
+	// elements. Of course in practice CFWS elements can also be found between
+	// two non-CFWS phrase elements...
+	//
+
 	buf.WriteString(g.generateWord())
 
-	for i := 0; i < rand.Intn(3); i++ {
-		buf.WriteString(g.generateCFWS())
+	nbElts := rand.Intn(3)
 
-		n := rand.Float32()
-		if n < 0.75 {
+	for i := 0; i < nbElts; i++ {
+		buf.WriteString(g.generateCFWS())
+		if n := rand.Float32(); n < 0.75 {
+			buf.WriteString(g.generateCFWS())
 			buf.WriteString(g.generateWord())
 		} else if n < 0.9 {
+			buf.WriteString(g.generateCFWS())
 			buf.WriteString(g.writeByte('.'))
 		} else {
-			// We already generated a CFWS at the beginning of the block
+			buf.WriteString(g.generateCFWS())
+
+			// We make sure not to generate a CFWS element as last element
+			// because it makes it tricky to return the right expected phrase,
+			// where the whitespace in this last element is not semantically
+			// part of the phrase. See the explanation in DataReader.ReadPhrase.
+
+			if i == nbElts-1 {
+				buf.WriteString(g.generateWord())
+			}
 		}
 	}
 
@@ -386,19 +403,21 @@ func (g *TestMessageGenerator) generatePhrase() string {
 }
 
 func (g *TestMessageGenerator) generatePhrases() []string {
-	// Phrases can start and end with a CFWS element, and whitespace characters
-	// in this element are part of the phrase. As a result, we cannot generate
-	// extra FWS elements before or after a separator (comma) in the list
-	// because we would have no way to include them in the expect result for the
-	// previous phrase. It is not really a problem, especially given how
-	// ambiguous phrase parsing is anyway.
-
 	var phrases []string
 
 	phrases = append(phrases, g.generatePhrase())
 
 	for i := 0; i < rand.Intn(3); i++ {
+		if g.maybe(0.05) {
+			g.generateCFWS()
+		}
+
 		g.writeByte(',')
+
+		if g.maybe(0.05) {
+			g.generateCFWS()
+		}
+
 		phrases = append(phrases, g.generatePhrase())
 	}
 

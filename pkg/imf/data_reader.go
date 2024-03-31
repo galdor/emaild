@@ -325,6 +325,22 @@ func (r *DataReader) ReadWord() ([]byte, error) {
 }
 
 func (r *DataReader) ReadPhrase() ([]byte, error) {
+	// Are initial and final spaces part of a phrase? In this example:
+	//
+	// Keywords: foo bar ,  hello world\r\n
+	//
+	// Is the first phrase "foo bar" or " foo bar ", and is the second phrase
+	// "hello world" or " hello world"?
+	//
+	// RFC 5322 is very bad at specifying how syntaxic elements are combined
+	// into semantic elements. Here the logical answer is that initial and final
+	// spaces are not part of a phrase. If they were, then the following field:
+	//
+	// From: Bob Howard  <bob@example.com>\r\n
+	//
+	// Would yield the display name " Bob Howard ", which is absolutely not what
+	// anyone sane has in mind.
+
 	var phrase []byte
 
 	word, err := r.ReadWord()
@@ -334,11 +350,12 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 	phrase = append(phrase, word...)
 
 	for {
+		// Careful, we only want to include this whitespace if there is a valid
+		// phrase element ('.' character or word) afterward.
 		ws, err := r.ReadCFWS()
 		if err != nil {
 			return nil, err
 		}
-		phrase = append(phrase, ws...)
 
 		if len(r.buf) == 0 {
 			break
@@ -347,6 +364,7 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 		// With obsolete syntax, a phrase element can be a single '.' character
 		// which is not a valid word, so we have to handle it separately.
 		if r.buf[0] == '.' {
+			phrase = append(phrase, ws...)
 			phrase = append(phrase, '.')
 			r.Skip(1)
 			continue
@@ -358,8 +376,10 @@ func (r *DataReader) ReadPhrase() ([]byte, error) {
 			word, err := r.ReadWord()
 			if err != nil {
 				finished = true
+				return nil
 			}
 
+			phrase = append(phrase, ws...)
 			phrase = append(phrase, word...)
 			return nil
 		})
