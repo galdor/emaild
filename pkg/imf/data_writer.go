@@ -146,9 +146,9 @@ func (w *DataWriter) WriteDomain(domain Domain) {
 	if IsDotAtom(s) {
 		w.WriteString(s)
 	} else {
-		w.WriteRune('[')
+		// Domain literals are stored with their bracket delimiters, so we do
+		// not have to add them here.
 		w.WriteString(s)
-		w.WriteRune(']')
 	}
 }
 
