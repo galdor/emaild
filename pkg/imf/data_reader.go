@@ -1320,7 +1320,7 @@ func (r *DataReader) ReadReceivedTokens() (ReceivedTokens, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid word: %w", err)
 		}
-		tokens = append(tokens, word)
+		tokens = append(tokens, string(word))
 	}
 
 	return tokens, nil
