@@ -175,20 +175,25 @@ func (r *MessageReader) maybeProcessLine() error {
 		field.Value = utils.Ref(OptionalFieldValue(""))
 	}
 
+	defer func() {
+		r.msg.Header = append(r.msg.Header, &field)
+		r.line = nil
+	}()
+
 	if err := field.Value.Read(rr); err != nil {
-		return fmt.Errorf("invalid value for field %q: %w", field.Name, err)
+		field.SetError("invalid value: %v", err)
+		return nil
 	}
 
 	if _, err := rr.ReadCFWS(); err != nil {
-		return err
+		field.SetError("invalid trailing data: %v", err)
+		return nil
 	}
 
 	if !rr.Empty() {
-		return fmt.Errorf("invalid trailing data for field %q", field.Name)
+		field.SetError("invalid trailing data")
+		return nil
 	}
 
-	r.msg.Header = append(r.msg.Header, &field)
-
-	r.line = nil
 	return nil
 }

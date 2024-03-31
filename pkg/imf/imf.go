@@ -16,10 +16,23 @@ type Field struct {
 	Raw   string
 	Name  string
 	Value FieldValue
+	Error string
 }
 
 func (f *Field) String() string {
+	if f.HasError() {
+		return fmt.Sprintf("#<invalid-field %s %q>", f.Name, f.Error)
+	}
+
 	return fmt.Sprintf("#<field %s %v>", f.Name, f.Value)
+}
+
+func (f *Field) SetError(format string, args ...interface{}) {
+	f.Error = fmt.Sprintf(format, args...)
+}
+
+func (f *Field) HasError() bool {
+	return f.Error != ""
 }
 
 type FieldValue interface {
