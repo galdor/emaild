@@ -2,14 +2,18 @@ package imf
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/galdor/emaild/pkg/utils"
 )
 
+var ErrLineTooLong = errors.New("line too long")
+
 type MessageReader struct {
-	MixedEOL bool
+	MixedEOL      bool
+	MaxLineLength int
 
 	buf  []byte
 	line []byte
@@ -18,7 +22,15 @@ type MessageReader struct {
 }
 
 func NewMessageReader() *MessageReader {
-	r := MessageReader{}
+	// RFC 5322 2.1.1. says that the maximum line length should be 78 characters
+	// (which in the context of this RFC means bytes), but in practice
+	// absolutely no email server respects it, so we fall back to the mandatory
+	// 998 byte limit.
+
+	r := MessageReader{
+		MixedEOL:      false,
+		MaxLineLength: 998,
+	}
 
 	return &r
 }
@@ -33,6 +45,13 @@ func (r *MessageReader) Read(data []byte) error {
 	for {
 		eol := bytes.IndexByte(r.buf, '\n')
 		if eol == -1 {
+			// We want to fail as soon as we exceed the maximum line length even
+			// if we have not seen the end of the line yet.
+
+			if len(r.buf) > r.MaxLineLength {
+				return ErrLineTooLong
+			}
+
 			break
 		}
 
@@ -63,6 +82,10 @@ func (r *MessageReader) Read(data []byte) error {
 
 		line := r.buf[:eol+1]
 		r.buf = r.buf[eol+1:]
+
+		if len(line) > r.MaxLineLength {
+			return ErrLineTooLong
+		}
 
 		if !IsWSP(line[0]) {
 			// If the line does not start with a whitespace character, this is
