@@ -9,6 +9,8 @@ import (
 )
 
 type MessageReader struct {
+	MixedEOL bool
+
 	buf  []byte
 	line []byte
 	body bool
@@ -29,12 +31,25 @@ func (r *MessageReader) Read(data []byte) error {
 	}
 
 	for {
-		eol := bytes.Index(r.buf, []byte{'\r', '\n'})
+		eol := bytes.IndexByte(r.buf, '\n')
 		if eol == -1 {
 			break
 		}
 
-		if eol == 0 {
+		if !r.MixedEOL && (eol == 0 || r.buf[eol-1] != '\r') {
+			return fmt.Errorf("invalid '\n' character")
+		}
+
+		// We compute the index of the EOL sequence (either \r\n, or possibly \n
+		// if MixedEOL is true) so that we can check if this is an empty line.
+		var eolStart int
+		if eol > 0 && r.buf[eol-1] == '\r' {
+			eolStart = eol - 1
+		} else {
+			eolStart = eol
+		}
+
+		if eolStart == 0 {
 			// An empty line marks the beginning of the body
 
 			r.body = true
@@ -46,8 +61,8 @@ func (r *MessageReader) Read(data []byte) error {
 			return nil
 		}
 
-		line := r.buf[:eol+2]
-		r.buf = r.buf[eol+2:]
+		line := r.buf[:eol+1]
+		r.buf = r.buf[eol+1:]
 
 		if !IsWSP(line[0]) {
 			// If the line does not start with a whitespace character, this is
@@ -95,9 +110,18 @@ func (r *MessageReader) maybeProcessLine() error {
 	}
 
 	// We want to keep folded lines as they are in the raw representation of
-	// each field, but the final EOL sequence does not impact parsing.
-	if bytes.HasSuffix(r.line, []byte{'\r', '\n'}) {
-		r.line = r.line[:len(r.line)-2]
+	// each field, but the final EOL sequence does not impact parsing. We make
+	// sure to support both possible EOL sequences (\n and \r\n). If MixedEOL is
+	// false, the Read() method made sure the line ends with \r\n so there is no
+	// point in checking again here.
+
+	if r.line[len(r.line)-1] == '\n' {
+		r.line = r.line[:len(r.line)-1]
+
+		if r.line[len(r.line)-1] == '\r' {
+			r.line = r.line[:len(r.line)-1]
+
+		}
 	}
 
 	field := Field{
@@ -105,6 +129,7 @@ func (r *MessageReader) maybeProcessLine() error {
 	}
 
 	rr := NewDataReader(r.line)
+	rr.MixedEOL = r.MixedEOL
 
 	// Field name
 	field.Name = string(rr.ReadWhile(IsFieldChar))

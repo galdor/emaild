@@ -11,6 +11,8 @@ import (
 )
 
 type DataReader struct {
+	MixedEOL bool
+
 	buf []byte
 }
 
@@ -83,6 +85,22 @@ func (r *DataReader) ReadFWS() ([]byte, error) {
 			ws = append(ws, r.buf[2])
 
 			r.Skip(3)
+		} else if r.MixedEOL && r.buf[0] == '\n' {
+			// In mixed EOL mode, we accept \n as an EOL sequence, meaning that
+			// FWS becomes \n followed by either a WSP character.
+
+			if len(r.buf) < 2 {
+				return nil, fmt.Errorf("truncated fws sequence")
+			}
+
+			if !IsWSP(r.buf[1]) {
+				return nil, fmt.Errorf("invalid fws sequence: missing " +
+					"whitespace after lf character")
+			}
+
+			ws = append(ws, r.buf[1])
+
+			r.Skip(2)
 		} else {
 			break
 		}
@@ -95,10 +113,6 @@ func (r *DataReader) ReadCFWS() ([]byte, error) {
 	var ws []byte
 
 	for len(r.buf) > 0 {
-		if !IsWSP(r.buf[0]) && r.buf[0] != '\r' && r.buf[0] != '(' {
-			break
-		}
-
 		ws2, err := r.ReadFWS()
 		if err != nil {
 			return nil, err
@@ -110,6 +124,8 @@ func (r *DataReader) ReadCFWS() ([]byte, error) {
 			if err := r.SkipComment(0); err != nil {
 				return nil, err
 			}
+		} else if len(ws2) == 0 {
+			break
 		}
 	}
 

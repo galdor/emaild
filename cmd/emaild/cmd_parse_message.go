@@ -18,6 +18,7 @@ func cmdParseMessage(p *program.Program) {
 	}
 
 	r := imf.NewMessageReader()
+	r.MixedEOL = true
 
 	msg, err := r.ReadAll(data)
 	if err != nil {
