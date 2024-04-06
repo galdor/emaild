@@ -47,8 +47,8 @@ func (g *TestMessageGenerator) GenerateAndTestMessage(t *testing.T) {
 
 	eMsg := g.generateMessage(t)
 
-	r := NewMessageReader()
-	msg, err := r.ReadAll(g.buf.Bytes())
+	d := NewMessageDecoder()
+	msg, err := d.DecodeAll(g.buf.Bytes())
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -70,8 +70,8 @@ func (g *TestMessageGenerator) GenerateAndTestField(t *testing.T, name string) {
 	t.Run(name, func(t *testing.T) {
 		t.Logf("field: %q", g.buf.String())
 
-		r := NewMessageReader()
-		msg, err := r.ReadAll(g.buf.Bytes())
+		d := NewMessageDecoder()
+		msg, err := d.DecodeAll(g.buf.Bytes())
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
@@ -391,7 +391,8 @@ func (g *TestMessageGenerator) generatePhrase() string {
 			// We make sure not to generate a CFWS element as last element
 			// because it makes it tricky to return the right expected phrase,
 			// where the whitespace in this last element is not semantically
-			// part of the phrase. See the explanation in DataReader.ReadPhrase.
+			// part of the phrase. See the explanation in
+			// DataDecoder.ReadPhrase.
 
 			if i == nbElts-1 {
 				buf.WriteString(g.generateWord())

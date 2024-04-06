@@ -11,7 +11,7 @@ import (
 
 var ErrLineTooLong = errors.New("line too long")
 
-type MessageReader struct {
+type MessageDecoder struct {
 	MixedEOL      bool
 	MaxLineLength int
 
@@ -21,49 +21,47 @@ type MessageReader struct {
 	msg  Message
 }
 
-func NewMessageReader() *MessageReader {
+func NewMessageDecoder() *MessageDecoder {
 	// RFC 5322 2.1.1. says that the maximum line length should be 78 characters
 	// (which in the context of this RFC means bytes), but in practice
 	// absolutely no email server respects it, so we fall back to the mandatory
 	// 998 byte limit.
 
-	r := MessageReader{
+	return &MessageDecoder{
 		MixedEOL:      false,
 		MaxLineLength: 998,
 	}
-
-	return &r
 }
 
-func (r *MessageReader) Read(data []byte) error {
-	r.buf = append(r.buf, data...)
+func (d *MessageDecoder) Decode(data []byte) error {
+	d.buf = append(d.buf, data...)
 
 	for {
-		eol := bytes.IndexByte(r.buf, '\n')
+		eol := bytes.IndexByte(d.buf, '\n')
 		if eol == -1 {
 			// We want to fail as soon as we exceed the maximum line length even
 			// if we have not seen the end of the line yet.
 
-			if len(r.buf) > r.MaxLineLength {
+			if len(d.buf) > d.MaxLineLength {
 				return ErrLineTooLong
 			}
 
 			break
 		}
 
-		if !r.MixedEOL && (eol == 0 || r.buf[eol-1] != '\r') {
+		if !d.MixedEOL && (eol == 0 || d.buf[eol-1] != '\r') {
 			return fmt.Errorf("invalid '\n' character")
 		}
 
-		line := r.buf[:eol+1]
-		r.buf = r.buf[eol+1:]
+		line := d.buf[:eol+1]
+		d.buf = d.buf[eol+1:]
 
-		if len(line) > r.MaxLineLength {
+		if len(line) > d.MaxLineLength {
 			return ErrLineTooLong
 		}
 
-		if r.body {
-			r.msg.Body = append(r.msg.Body, line...)
+		if d.body {
+			d.msg.Body = append(d.msg.Body, line...)
 		} else {
 			// We compute the index of the EOL sequence (either \r\n, or
 			// possibly \n if MixedEOL is true) so that we can check if this is
@@ -77,11 +75,11 @@ func (r *MessageReader) Read(data []byte) error {
 
 			if eolStart == 0 {
 				// An empty line marks the beginning of the body
-				r.body = true
+				d.body = true
 
 				// We may still need to process the current line if there is
 				// one.
-				if err := r.maybeProcessLine(); err != nil {
+				if err := d.maybeProcessLine(); err != nil {
 					return err
 				}
 
@@ -93,82 +91,82 @@ func (r *MessageReader) Read(data []byte) error {
 				// is not the continuation of a folded field, meaning that the
 				// previous line has been entirely read.
 
-				if err := r.maybeProcessLine(); err != nil {
+				if err := d.maybeProcessLine(); err != nil {
 					return err
 				}
 			}
 
-			r.line = append(r.line, line...)
+			d.line = append(d.line, line...)
 		}
 	}
 
 	return nil
 }
 
-func (r *MessageReader) Close() (*Message, error) {
+func (d *MessageDecoder) Close() (*Message, error) {
 	// If there is no body, there may still be a line in the current line buffer
 	// since we cannot know if the current line is complete until we see the
 	// next line or the end of the data (since the header field can be folded on
 	// multiple lines).
-	if err := r.maybeProcessLine(); err != nil {
+	if err := d.maybeProcessLine(); err != nil {
 		return nil, err
 	}
 
-	return &r.msg, nil
+	return &d.msg, nil
 }
 
-func (r *MessageReader) ReadAll(data []byte) (*Message, error) {
-	if err := r.Read(data); err != nil {
+func (d *MessageDecoder) DecodeAll(data []byte) (*Message, error) {
+	if err := d.Decode(data); err != nil {
 		return nil, err
 	}
 
-	return r.Close()
+	return d.Close()
 }
 
-func (r *MessageReader) maybeProcessLine() error {
-	if len(r.line) == 0 {
+func (d *MessageDecoder) maybeProcessLine() error {
+	if len(d.line) == 0 {
 		return nil
 	}
 
 	// We want to keep folded lines as they are in the raw representation of
 	// each field, but the final EOL sequence does not impact parsing. We make
 	// sure to support both possible EOL sequences (\n and \r\n). If MixedEOL is
-	// false, the Read() method made sure the line ends with \r\n so there is no
-	// point in checking again here.
+	// false, the Decode() method made sure the line ends with \r\n so there is
+	// no point in checking again here.
 
-	if r.line[len(r.line)-1] == '\n' {
-		r.line = r.line[:len(r.line)-1]
+	if d.line[len(d.line)-1] == '\n' {
+		d.line = d.line[:len(d.line)-1]
 
-		if r.line[len(r.line)-1] == '\r' {
-			r.line = r.line[:len(r.line)-1]
+		if d.line[len(d.line)-1] == '\r' {
+			d.line = d.line[:len(d.line)-1]
 
 		}
 	}
 
 	field := Field{
-		Raw: string(r.line),
+		Raw: string(d.line),
 	}
 
-	rr := NewDataReader(r.line)
-	rr.MixedEOL = r.MixedEOL
+	dd := NewDataDecoder(d.line)
+	dd.MixedEOL = d.MixedEOL
 
 	// Field name
-	field.Name = string(rr.ReadWhile(IsFieldChar))
+	field.Name = string(dd.ReadWhile(IsFieldChar))
 	if len(field.Name) == 0 {
 		return fmt.Errorf("empty field name")
 	}
 
 	// Colon separator
-	if _, err := rr.ReadFWS(); err != nil {
+	if _, err := dd.ReadFWS(); err != nil {
 		return err
 	}
 
-	if !rr.SkipByte(':') {
+	if !dd.SkipByte(':') {
 		return fmt.Errorf("missing colon after field name %q", field.Name)
 	}
 
 	// Field value
-	if _, err := rr.ReadFWS(); err != nil {
+	if _, err := dd.ReadFWS(); err != nil {
 		return err
 	}
 
@@ -222,21 +220,21 @@ func (r *MessageReader) maybeProcessLine() error {
 	}
 
 	defer func() {
-		r.msg.Header = append(r.msg.Header, &field)
-		r.line = nil
+		d.msg.Header = append(d.msg.Header, &field)
+		d.line = nil
 	}()
 
-	if err := field.Value.Read(rr); err != nil {
+	if err := field.Value.Decode(dd); err != nil {
 		field.SetError("invalid value: %v", err)
 		return nil
 	}
 
-	if _, err := rr.ReadCFWS(); err != nil {
+	if _, err := dd.ReadCFWS(); err != nil {
 		field.SetError("invalid trailing data: %v", err)
 		return nil
 	}
 
-	if !rr.Empty() {
+	if !dd.Empty() {
 		field.SetError("invalid trailing data")
 		return nil
 	}

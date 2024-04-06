@@ -22,8 +22,8 @@ func (v *ReturnPathFieldValue) String() string {
 	return fmt.Sprintf("%v", v.Address)
 }
 
-func (v *ReturnPathFieldValue) Read(r *DataReader) error {
-	spec, err := r.ReadAngleAddress(true)
+func (v *ReturnPathFieldValue) Decode(d *DataDecoder) error {
+	spec, err := d.ReadAngleAddress(true)
 	if err != nil {
 		return err
 	}
@@ -32,14 +32,14 @@ func (v *ReturnPathFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ReturnPathFieldValue) Write(w *DataWriter) error {
-	w.WriteRune('<')
+func (v ReturnPathFieldValue) Encode(e *DataEncoder) error {
+	e.WriteRune('<')
 
 	if v.Address != nil {
-		w.WriteSpecificAddress(*v.Address)
+		e.WriteSpecificAddress(*v.Address)
 	}
 
-	w.WriteRune('>')
+	e.WriteRune('>')
 
 	return nil
 }
@@ -74,21 +74,21 @@ func (v *ReceivedFieldValue) String() string {
 	return fmt.Sprintf("%v %s", v.Tokens, v.Date.Format(time.RFC3339))
 }
 
-func (v *ReceivedFieldValue) Read(r *DataReader) error {
-	tokens, err := r.ReadReceivedTokens()
+func (v *ReceivedFieldValue) Decode(d *DataDecoder) error {
+	tokens, err := d.ReadReceivedTokens()
 	if err != nil {
 		return err
 	}
 
-	if _, err := r.ReadCFWS(); err != nil {
+	if _, err := d.ReadCFWS(); err != nil {
 		return err
 	}
 
-	if !r.SkipByte(';') {
+	if !d.SkipByte(';') {
 		return fmt.Errorf("missing ';' character after tokens")
 	}
 
-	date, err := r.ReadDateTime()
+	date, err := d.ReadDateTime()
 	if err != nil {
 		return fmt.Errorf("invalid datetime: %w", err)
 	}
@@ -99,12 +99,12 @@ func (v *ReceivedFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ReceivedFieldValue) Write(w *DataWriter) error {
-	if err := w.WriteReceivedTokens(v.Tokens); err != nil {
+func (v ReceivedFieldValue) Encode(e *DataEncoder) error {
+	if err := e.WriteReceivedTokens(v.Tokens); err != nil {
 		return err
 	}
-	w.WriteString("; ")
-	w.WriteDateTime(v.Date)
+	e.WriteString("; ")
+	e.WriteDateTime(v.Date)
 	return nil
 }
 
@@ -131,8 +131,8 @@ func (v *ResentDateFieldValue) String() string {
 	return fmt.Sprintf("%s", time.Time(*v).Format(time.RFC3339))
 }
 
-func (v *ResentDateFieldValue) Read(r *DataReader) error {
-	date, err := r.ReadDateTime()
+func (v *ResentDateFieldValue) Decode(d *DataDecoder) error {
+	date, err := d.ReadDateTime()
 	if err != nil {
 		return fmt.Errorf("invalid datetime: %w", err)
 	}
@@ -141,8 +141,8 @@ func (v *ResentDateFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ResentDateFieldValue) Write(w *DataWriter) error {
-	w.WriteDateTime(time.Time(v))
+func (v ResentDateFieldValue) Encode(e *DataEncoder) error {
+	e.WriteDateTime(time.Time(v))
 	return nil
 }
 
@@ -163,8 +163,8 @@ func (v ResentFromFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *ResentFromFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(false)
+func (v *ResentFromFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
@@ -173,12 +173,12 @@ func (v *ResentFromFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ResentFromFieldValue) Write(w *DataWriter) error {
+func (v ResentFromFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *ResentFromFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -202,8 +202,8 @@ func (v ResentSenderFieldValue) String() string {
 	return fmt.Sprintf("%v", v.Address)
 }
 
-func (v *ResentSenderFieldValue) Read(r *DataReader) error {
-	addr, err := r.ReadAddress()
+func (v *ResentSenderFieldValue) Decode(d *DataDecoder) error {
+	addr, err := d.ReadAddress()
 	if err != nil {
 		return err
 	}
@@ -212,8 +212,8 @@ func (v *ResentSenderFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ResentSenderFieldValue) Write(w *DataWriter) error {
-	return w.WriteAddress(v.Address)
+func (v ResentSenderFieldValue) Encode(e *DataEncoder) error {
+	return e.WriteAddress(v.Address)
 }
 
 func (v *ResentSenderFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -231,8 +231,8 @@ func (v ResentToFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *ResentToFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(false)
+func (v *ResentToFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
@@ -241,12 +241,12 @@ func (v *ResentToFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ResentToFieldValue) Write(w *DataWriter) error {
+func (v ResentToFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid address list")
 	}
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *ResentToFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -265,8 +265,8 @@ func (v ResentCcFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *ResentCcFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(false)
+func (v *ResentCcFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
@@ -275,12 +275,12 @@ func (v *ResentCcFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ResentCcFieldValue) Write(w *DataWriter) error {
+func (v ResentCcFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid address list")
 	}
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *ResentCcFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -299,8 +299,8 @@ func (v ResentBccFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *ResentBccFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(true)
+func (v *ResentBccFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(true)
 	if err != nil {
 		return err
 	}
@@ -309,10 +309,10 @@ func (v *ResentBccFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ResentBccFieldValue) Write(w *DataWriter) error {
+func (v ResentBccFieldValue) Encode(e *DataEncoder) error {
 	// The Resent-Bcc field can be empty
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *ResentBccFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -331,8 +331,8 @@ func (v ResentMessageIdFieldValue) String() string {
 	return fmt.Sprintf("%v", MessageId(v))
 }
 
-func (v *ResentMessageIdFieldValue) Read(r *DataReader) error {
-	id, err := r.ReadMessageId()
+func (v *ResentMessageIdFieldValue) Decode(d *DataDecoder) error {
+	id, err := d.ReadMessageId()
 	if err != nil {
 		return err
 	}
@@ -341,8 +341,8 @@ func (v *ResentMessageIdFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ResentMessageIdFieldValue) Write(w *DataWriter) error {
-	return w.WriteMessageId(MessageId(v))
+func (v ResentMessageIdFieldValue) Encode(e *DataEncoder) error {
+	return e.WriteMessageId(MessageId(v))
 }
 
 func (v *ResentMessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -361,8 +361,8 @@ func (v *DateFieldValue) String() string {
 	return fmt.Sprintf("%s", time.Time(*v).Format(time.RFC3339))
 }
 
-func (v *DateFieldValue) Read(r *DataReader) error {
-	date, err := r.ReadDateTime()
+func (v *DateFieldValue) Decode(d *DataDecoder) error {
+	date, err := d.ReadDateTime()
 	if err != nil {
 		return fmt.Errorf("invalid datetime: %w", err)
 	}
@@ -371,8 +371,8 @@ func (v *DateFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v DateFieldValue) Write(w *DataWriter) error {
-	w.WriteDateTime(time.Time(v))
+func (v DateFieldValue) Encode(e *DataEncoder) error {
+	e.WriteDateTime(time.Time(v))
 	return nil
 }
 
@@ -393,8 +393,8 @@ func (v FromFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *FromFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(false)
+func (v *FromFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
@@ -403,12 +403,12 @@ func (v *FromFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v FromFieldValue) Write(w *DataWriter) error {
+func (v FromFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *FromFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -431,8 +431,8 @@ func (v SenderFieldValue) String() string {
 	return fmt.Sprintf("%v", v.Address)
 }
 
-func (v *SenderFieldValue) Read(r *DataReader) error {
-	addr, err := r.ReadAddress()
+func (v *SenderFieldValue) Decode(d *DataDecoder) error {
+	addr, err := d.ReadAddress()
 	if err != nil {
 		return err
 	}
@@ -441,8 +441,8 @@ func (v *SenderFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v SenderFieldValue) Write(w *DataWriter) error {
-	return w.WriteAddress(v.Address)
+func (v SenderFieldValue) Encode(e *DataEncoder) error {
+	return e.WriteAddress(v.Address)
 }
 
 func (v *SenderFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -460,8 +460,8 @@ func (v ReplyToFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *ReplyToFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(false)
+func (v *ReplyToFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
@@ -470,12 +470,12 @@ func (v *ReplyToFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ReplyToFieldValue) Write(w *DataWriter) error {
+func (v ReplyToFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *ReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -494,8 +494,8 @@ func (v ToFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *ToFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(false)
+func (v *ToFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
@@ -504,12 +504,12 @@ func (v *ToFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ToFieldValue) Write(w *DataWriter) error {
+func (v ToFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *ToFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -528,8 +528,8 @@ func (v CcFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *CcFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(false)
+func (v *CcFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(false)
 	if err != nil {
 		return err
 	}
@@ -538,12 +538,12 @@ func (v *CcFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v CcFieldValue) Write(w *DataWriter) error {
+func (v CcFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty address list")
 	}
 
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *CcFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -562,8 +562,8 @@ func (v BccFieldValue) String() string {
 	return fmt.Sprintf("%v", Addresses(v))
 }
 
-func (v *BccFieldValue) Read(r *DataReader) error {
-	addrs, err := r.ReadAddressList(true)
+func (v *BccFieldValue) Decode(d *DataDecoder) error {
+	addrs, err := d.ReadAddressList(true)
 	if err != nil {
 		return err
 	}
@@ -572,9 +572,9 @@ func (v *BccFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v BccFieldValue) Write(w *DataWriter) error {
+func (v BccFieldValue) Encode(e *DataEncoder) error {
 	// The Bcc field can be empty
-	return w.WriteAddressList(Addresses(v))
+	return e.WriteAddressList(Addresses(v))
 }
 
 func (v *BccFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -593,8 +593,8 @@ func (v MessageIdFieldValue) String() string {
 	return fmt.Sprintf("%v", MessageId(v))
 }
 
-func (v *MessageIdFieldValue) Read(r *DataReader) error {
-	id, err := r.ReadMessageId()
+func (v *MessageIdFieldValue) Decode(d *DataDecoder) error {
+	id, err := d.ReadMessageId()
 	if err != nil {
 		return err
 	}
@@ -603,8 +603,8 @@ func (v *MessageIdFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v MessageIdFieldValue) Write(w *DataWriter) error {
-	return w.WriteMessageId(MessageId(v))
+func (v MessageIdFieldValue) Encode(e *DataEncoder) error {
+	return e.WriteMessageId(MessageId(v))
 }
 
 func (v *MessageIdFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -623,8 +623,8 @@ func (v InReplyToFieldValue) String() string {
 	return fmt.Sprintf("%v", MessageIds(v))
 }
 
-func (v *InReplyToFieldValue) Read(r *DataReader) error {
-	ids, err := r.ReadMessageIdList(true)
+func (v *InReplyToFieldValue) Decode(d *DataDecoder) error {
+	ids, err := d.ReadMessageIdList(true)
 	if err != nil {
 		return err
 	}
@@ -633,12 +633,12 @@ func (v *InReplyToFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v InReplyToFieldValue) Write(w *DataWriter) error {
+func (v InReplyToFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty message id list")
 	}
 
-	return w.WriteMessageIdList(MessageIds(v))
+	return e.WriteMessageIdList(MessageIds(v))
 }
 
 func (v *InReplyToFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -657,8 +657,8 @@ func (v ReferencesFieldValue) String() string {
 	return fmt.Sprintf("%v", MessageIds(v))
 }
 
-func (v *ReferencesFieldValue) Read(r *DataReader) error {
-	ids, err := r.ReadMessageIdList(true)
+func (v *ReferencesFieldValue) Decode(d *DataDecoder) error {
+	ids, err := d.ReadMessageIdList(true)
 	if err != nil {
 		return err
 	}
@@ -667,12 +667,12 @@ func (v *ReferencesFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v ReferencesFieldValue) Write(w *DataWriter) error {
+func (v ReferencesFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty message id list")
 	}
 
-	return w.WriteMessageIdList(MessageIds(v))
+	return e.WriteMessageIdList(MessageIds(v))
 }
 
 func (v *ReferencesFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -691,8 +691,8 @@ func (v SubjectFieldValue) String() string {
 	return fmt.Sprintf("%q", string(v))
 }
 
-func (v *SubjectFieldValue) Read(r *DataReader) error {
-	value, err := r.ReadUnstructured()
+func (v *SubjectFieldValue) Decode(d *DataDecoder) error {
+	value, err := d.ReadUnstructured()
 	if err != nil {
 		return err
 	}
@@ -701,8 +701,8 @@ func (v *SubjectFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v SubjectFieldValue) Write(w *DataWriter) error {
-	w.WriteUnstructured(string(v))
+func (v SubjectFieldValue) Encode(e *DataEncoder) error {
+	e.WriteUnstructured(string(v))
 	return nil
 }
 
@@ -722,8 +722,8 @@ func (v CommentsFieldValue) String() string {
 	return fmt.Sprintf("%q", string(v))
 }
 
-func (v *CommentsFieldValue) Read(r *DataReader) error {
-	value, err := r.ReadUnstructured()
+func (v *CommentsFieldValue) Decode(d *DataDecoder) error {
+	value, err := d.ReadUnstructured()
 	if err != nil {
 		return err
 	}
@@ -732,8 +732,8 @@ func (v *CommentsFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v CommentsFieldValue) Write(w *DataWriter) error {
-	w.WriteUnstructured(string(v))
+func (v CommentsFieldValue) Encode(e *DataEncoder) error {
+	e.WriteUnstructured(string(v))
 	return nil
 }
 
@@ -763,8 +763,8 @@ func (v KeywordsFieldValue) String() string {
 	return buf.String()
 }
 
-func (v *KeywordsFieldValue) Read(r *DataReader) error {
-	phrases, err := r.ReadPhraseList()
+func (v *KeywordsFieldValue) Decode(d *DataDecoder) error {
+	phrases, err := d.ReadPhraseList()
 	if err != nil {
 		return err
 	}
@@ -773,12 +773,12 @@ func (v *KeywordsFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v KeywordsFieldValue) Write(w *DataWriter) error {
+func (v KeywordsFieldValue) Encode(e *DataEncoder) error {
 	if len(v) == 0 {
 		return fmt.Errorf("invalid empty phrase list")
 	}
 
-	return w.WritePhraseList(v)
+	return e.WritePhraseList(v)
 }
 
 func (v *KeywordsFieldValue) testGenerate(g *TestMessageGenerator) {
@@ -797,8 +797,8 @@ func (v OptionalFieldValue) String() string {
 	return fmt.Sprintf("%q", string(v))
 }
 
-func (v *OptionalFieldValue) Read(r *DataReader) error {
-	value, err := r.ReadUnstructured()
+func (v *OptionalFieldValue) Decode(d *DataDecoder) error {
+	value, err := d.ReadUnstructured()
 	if err != nil {
 		return err
 	}
@@ -807,8 +807,8 @@ func (v *OptionalFieldValue) Read(r *DataReader) error {
 	return nil
 }
 
-func (v OptionalFieldValue) Write(w *DataWriter) error {
-	w.WriteUnstructured(string(v))
+func (v OptionalFieldValue) Encode(e *DataEncoder) error {
+	e.WriteUnstructured(string(v))
 	return nil
 }
 

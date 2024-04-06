@@ -42,8 +42,8 @@ func (f *Field) HasError() bool {
 }
 
 type FieldValue interface {
-	Read(*DataReader) error
-	Write(*DataWriter) error
+	Decode(*DataDecoder) error
+	Encode(*DataEncoder) error
 
 	testGenerate(*TestMessageGenerator)
 	testCheck(*testing.T, *TestMessageGenerator, FieldValue)
@@ -54,8 +54,8 @@ type Address interface{} // Mailbox or Group
 type Addresses []Address
 
 func (addrs Addresses) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteAddressList(addrs)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteAddressList(addrs)
 		return nil
 	})
 }
@@ -66,8 +66,8 @@ type SpecificAddress struct {
 }
 
 func (spec SpecificAddress) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteSpecificAddress(spec)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteSpecificAddress(spec)
 		return nil
 	})
 }
@@ -80,15 +80,15 @@ type Mailbox struct {
 type Mailboxes []*Mailbox
 
 func (mb Mailbox) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteMailbox(&mb)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteMailbox(&mb)
 		return nil
 	})
 }
 
 func (mbs Mailboxes) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteMailboxList(mbs)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteMailboxList(mbs)
 		return nil
 	})
 }
@@ -99,8 +99,8 @@ type Group struct {
 }
 
 func (g Group) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteGroup(&g)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteGroup(&g)
 		return nil
 	})
 }
@@ -113,15 +113,15 @@ type MessageId struct {
 type MessageIds []MessageId
 
 func (id MessageId) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteMessageId(id)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteMessageId(id)
 		return nil
 	})
 }
 
 func (ids MessageIds) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteMessageIdList(ids)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteMessageIdList(ids)
 		return nil
 	})
 }
@@ -131,8 +131,8 @@ type ReceivedToken interface{} // SpecificAddress, Domain or string
 type ReceivedTokens []ReceivedToken
 
 func (ts ReceivedTokens) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteReceivedTokens(ts)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteReceivedTokens(ts)
 		return nil
 	})
 }
@@ -140,8 +140,8 @@ func (ts ReceivedTokens) String() string {
 type Domain string
 
 func (d Domain) String() string {
-	return MustWriteInlineData(func(w *DataWriter) error {
-		w.WriteDomain(d)
+	return MustEncodeInlineData(func(e *DataEncoder) error {
+		e.WriteDomain(d)
 		return nil
 	})
 }

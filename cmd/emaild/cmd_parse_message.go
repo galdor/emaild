@@ -18,10 +18,10 @@ func cmdParseMessage(p *program.Program) {
 		p.Fatal("%v", err)
 	}
 
-	r := imf.NewMessageReader()
-	r.MixedEOL = true
+	d := imf.NewMessageDecoder()
+	d.MixedEOL = true
 
-	msg, err := r.ReadAll(data)
+	msg, err := d.DecodeAll(data)
 	if err != nil {
 		p.Fatal("invalid message: %v", err)
 	}
