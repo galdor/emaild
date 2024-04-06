@@ -38,10 +38,6 @@ func NewMessageReader() *MessageReader {
 func (r *MessageReader) Read(data []byte) error {
 	r.buf = append(r.buf, data...)
 
-	if r.body {
-		return nil
-	}
-
 	for {
 		eol := bytes.IndexByte(r.buf, '\n')
 		if eol == -1 {
@@ -59,27 +55,6 @@ func (r *MessageReader) Read(data []byte) error {
 			return fmt.Errorf("invalid '\n' character")
 		}
 
-		// We compute the index of the EOL sequence (either \r\n, or possibly \n
-		// if MixedEOL is true) so that we can check if this is an empty line.
-		var eolStart int
-		if eol > 0 && r.buf[eol-1] == '\r' {
-			eolStart = eol - 1
-		} else {
-			eolStart = eol
-		}
-
-		if eolStart == 0 {
-			// An empty line marks the beginning of the body
-
-			r.body = true
-
-			if err := r.maybeProcessLine(); err != nil {
-				return err
-			}
-
-			return nil
-		}
-
 		line := r.buf[:eol+1]
 		r.buf = r.buf[eol+1:]
 
@@ -87,33 +62,56 @@ func (r *MessageReader) Read(data []byte) error {
 			return ErrLineTooLong
 		}
 
-		if !IsWSP(line[0]) {
-			// If the line does not start with a whitespace character, this is
-			// not the continuation of a folded field, meaning that the previous
-			// line has been entirely read.
-
-			if err := r.maybeProcessLine(); err != nil {
-				return err
+		if r.body {
+			r.msg.Body = append(r.msg.Body, line...)
+		} else {
+			// We compute the index of the EOL sequence (either \r\n, or
+			// possibly \n if MixedEOL is true) so that we can check if this is
+			// an empty line.
+			var eolStart int
+			if len(line) >= 2 && line[len(line)-2] == '\r' {
+				eolStart = len(line) - 2
+			} else {
+				eolStart = len(line) - 1
 			}
-		}
 
-		r.line = append(r.line, line...)
+			if eolStart == 0 {
+				// An empty line marks the beginning of the body
+				r.body = true
+
+				// We may still need to process the current line if there is
+				// one.
+				if err := r.maybeProcessLine(); err != nil {
+					return err
+				}
+
+				continue
+			}
+
+			if !IsWSP(line[0]) {
+				// If the line does not start with a whitespace character, this
+				// is not the continuation of a folded field, meaning that the
+				// previous line has been entirely read.
+
+				if err := r.maybeProcessLine(); err != nil {
+					return err
+				}
+			}
+
+			r.line = append(r.line, line...)
+		}
 	}
 
 	return nil
 }
 
 func (r *MessageReader) Close() (*Message, error) {
-	// If there is no body, there may still be a line in the current line
-	// buffer.
+	// If there is no body, there may still be a line in the current line buffer
+	// since we cannot know if the current line is complete until we see the
+	// next line or the end of the data (since the header field can be folded on
+	// multiple lines).
 	if err := r.maybeProcessLine(); err != nil {
 		return nil, err
-	}
-
-	if r.body && len(r.buf) > 0 {
-		// TODO decode r.buf into r.msg.Body
-		r.msg.Body = r.buf
-		r.buf = nil
 	}
 
 	return &r.msg, nil

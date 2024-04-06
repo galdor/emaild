@@ -9,7 +9,13 @@ import (
 
 type Message struct {
 	Header []*Field
-	Body   []byte // optional
+	Body   Body // optional
+}
+
+type Body []byte
+
+func (b Body) String() string {
+	return fmt.Sprintf("#<body %dB>", len(b))
 }
 
 type Field struct {

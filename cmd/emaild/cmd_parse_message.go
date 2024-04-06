@@ -25,10 +25,12 @@ func cmdParseMessage(p *program.Program) {
 		p.Fatal("invalid message: %v", err)
 	}
 
-	// TODO serialization
-	//fmt.Printf("%#v\n", msg)
 	for _, field := range msg.Header {
 		fmt.Printf("%v\n", field)
+	}
+
+	if len(msg.Body) > 0 {
+		fmt.Printf("%v\n", msg.Body)
 	}
 }
 
