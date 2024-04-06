@@ -7,6 +7,11 @@ import (
 
 // RFC 5322 Internet Message Format
 
+const (
+	MaxLineLength         = 78
+	ExtendedMaxLineLength = 998
+)
+
 type Message struct {
 	Header []*Field
 	Body   Body // optional

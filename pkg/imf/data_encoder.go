@@ -63,14 +63,6 @@ func (e *DataEncoder) WriteString(s string) {
 	e.lineLength += len(s)
 }
 
-func (e *DataEncoder) WriteHeader(header []*Field) error {
-	for _, field := range header {
-		e.WriteField(field)
-	}
-
-	return nil
-}
-
 func (e *DataEncoder) WriteField(f *Field) error {
 	e.WriteString(f.Name)
 	e.WriteString(": ")

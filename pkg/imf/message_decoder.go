@@ -29,7 +29,7 @@ func NewMessageDecoder() *MessageDecoder {
 
 	return &MessageDecoder{
 		MixedEOL:      false,
-		MaxLineLength: 998,
+		MaxLineLength: ExtendedMaxLineLength, // be tolerant by default
 	}
 }
 

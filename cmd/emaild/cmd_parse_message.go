@@ -28,8 +28,16 @@ func cmdParseMessage(p *program.Program) {
 
 	switch outputType {
 	case "encoded":
-		// TODO
-		p.Fatal("encoded output not implemented yet")
+		e := imf.NewMessageEncoder(msg)
+
+		data, err := e.Encode()
+		if err != nil {
+			p.Fatal("cannot encode message: %v", err)
+		}
+
+		if _, err := os.Stdout.Write(data); err != nil {
+			p.Fatal("cannot write stdout: %v", err)
+		}
 
 	case "errors":
 		var nbErrors int
@@ -46,7 +54,7 @@ func cmdParseMessage(p *program.Program) {
 
 	case "raw":
 		if _, err := os.Stdout.Write(data); err != nil {
-			p.Fatal("cannot write stdout: %w", err)
+			p.Fatal("cannot write stdout: %v", err)
 		}
 
 	case "syntax":
