@@ -1,9 +1,0 @@
-service:
-  data_directory: "data"
-
-  http_servers:
-    service:
-      address: "localhost:6060"
-
-  service_api:
-    http_server: "service"
