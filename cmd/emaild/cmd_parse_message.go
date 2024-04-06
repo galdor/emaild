@@ -10,6 +10,7 @@ import (
 )
 
 func cmdParseMessage(p *program.Program) {
+	outputType := p.OptionValue("output")
 	filePath := p.ArgumentValue("path")
 
 	data, err := readFileOrStdin(filePath)
@@ -25,12 +26,31 @@ func cmdParseMessage(p *program.Program) {
 		p.Fatal("invalid message: %v", err)
 	}
 
-	for _, field := range msg.Header {
-		fmt.Printf("%v\n", field)
-	}
+	switch outputType {
+	case "encoded":
+		// TODO
+		p.Fatal("encoded output not implemented yet")
 
-	if len(msg.Body) > 0 {
-		fmt.Printf("%v\n", msg.Body)
+	case "errors":
+		// TODO
+		p.Fatal("errors output not implemented yet")
+
+	case "raw":
+		if _, err := os.Stdout.Write(data); err != nil {
+			p.Fatal("cannot write stdout: %w", err)
+		}
+
+	case "syntax":
+		for _, field := range msg.Header {
+			fmt.Printf("%v\n", field)
+		}
+
+		if len(msg.Body) > 0 {
+			fmt.Printf("%v\n", msg.Body)
+		}
+
+	default:
+		p.Fatal("invalid output type %q", outputType)
 	}
 }
 

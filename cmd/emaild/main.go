@@ -12,6 +12,8 @@ func main() {
 	program := program.NewProgram("emaild", "a self-contained email server")
 
 	c = program.AddCommand("parse-message", "parse a message", cmdParseMessage)
+	c.AddOption("o", "output", "type", "raw", "the type of output: "+
+		"encoded, errors, raw, syntax")
 	c.AddOptionalArgument("path", "the path of the message file")
 
 	program.AddCommand("run", "run the server", cmdRun)
