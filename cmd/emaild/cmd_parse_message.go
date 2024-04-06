@@ -32,8 +32,17 @@ func cmdParseMessage(p *program.Program) {
 		p.Fatal("encoded output not implemented yet")
 
 	case "errors":
-		// TODO
-		p.Fatal("errors output not implemented yet")
+		var nbErrors int
+		for _, field := range msg.Header {
+			if field.HasError() {
+				nbErrors++
+				fmt.Printf("field %q: %s\n", field.Name, field.Error)
+			}
+		}
+
+		if nbErrors > 0 {
+			os.Exit(1)
+		}
 
 	case "raw":
 		if _, err := os.Stdout.Write(data); err != nil {
