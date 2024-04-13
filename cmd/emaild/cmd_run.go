@@ -13,6 +13,7 @@ import (
 
 func cmdRun(p *program.Program) {
 	logger := log.DefaultLogger("emaild")
+	logger.DebugLevel = p.DebugLevel
 
 	cfg := server.ServerCfg{
 		Log:     logger,
