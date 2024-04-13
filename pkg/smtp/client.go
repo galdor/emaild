@@ -45,8 +45,5 @@ func NewClient(address string, cfg ClientCfg) (*Client, error) {
 }
 
 func (c *Client) Close() {
-	if c.conn != nil {
-		c.conn.Close()
-		c.conn = nil
-	}
+	c.conn.Close()
 }
