@@ -24,7 +24,6 @@ type Server struct {
 }
 
 func NewServer(cfg ServerCfg) *Server {
-
 	s := Server{
 		Cfg: cfg,
 		Log: cfg.Log,
@@ -39,8 +38,10 @@ func (s *Server) Start() error {
 	s.Log.Info("starting")
 
 	smtpServerCfg := smtp.ServerCfg{
-		Log:     s.Cfg.Log.Child("smtp_server", nil),
-		Address: "127.0.0.1:2525",
+		Log: s.Cfg.Log.Child("smtp_server", nil),
+
+		Hosts: []string{"localhost"},
+		Port:  2525,
 	}
 
 	smtpServer, err := smtp.NewServer(smtpServerCfg)
