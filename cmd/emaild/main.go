@@ -16,7 +16,8 @@ func main() {
 		"encoded, errors, raw, syntax")
 	c.AddOptionalArgument("path", "the path of the message file")
 
-	program.AddCommand("run", "run the server", cmdRun)
+	c = program.AddCommand("run", "run the server", cmdRun)
+	c.AddOption("c", "cfg", "path", "", "the path of the configuration file")
 
 	program.AddCommand("version", "print the version of the server and exit",
 		cmdVersion)

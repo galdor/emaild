@@ -8,16 +8,11 @@ import (
 	"github.com/galdor/go-log"
 )
 
-type ServerCfg struct {
-	Log     *log.Logger
-	BuildId string
-}
-
 type Server struct {
 	Cfg ServerCfg
 	Log *log.Logger
 
-	smtpServer *smtp.Server
+	smtpServers map[string]*smtp.Server
 
 	stopChan chan struct{}
 	wg       sync.WaitGroup
@@ -28,6 +23,8 @@ func NewServer(cfg ServerCfg) *Server {
 		Cfg: cfg,
 		Log: cfg.Log,
 
+		smtpServers: make(map[string]*smtp.Server),
+
 		stopChan: make(chan struct{}),
 	}
 
@@ -37,32 +34,45 @@ func NewServer(cfg ServerCfg) *Server {
 func (s *Server) Start() error {
 	s.Log.Info("starting")
 
-	smtpServerCfg := smtp.ServerCfg{
-		Log: s.Cfg.Log.Child("smtp_server", nil),
-
-		Hosts: []string{"localhost"},
-		Port:  2525,
-	}
-
-	smtpServer, err := smtp.NewServer(smtpServerCfg)
-	if err != nil {
-		return fmt.Errorf("cannot create smtp server: %w", err)
-	}
-	s.smtpServer = smtpServer
-
-	if err := s.smtpServer.Start(); err != nil {
-		return fmt.Errorf("cannot start smtp server: %w", err)
+	if err := s.startSMTPServers(); err != nil {
+		return err
 	}
 
 	s.Log.Info("running")
 	return nil
 }
 
+func (s *Server) startSMTPServers() error {
+	for name, cfg := range s.Cfg.SMTP.Servers {
+		cfg.Log = s.Cfg.Log.Child("smtp_server", log.Data{"name": name})
+
+		server, err := smtp.NewServer(cfg)
+		if err != nil {
+			return fmt.Errorf("cannot create smtp server %q: %w", name, err)
+		}
+
+		if err := server.Start(); err != nil {
+			return fmt.Errorf("cannot start smtp server %q: %w", err)
+		}
+
+		s.smtpServers[name] = server
+
+	}
+
+	return nil
+}
+
 func (s *Server) Stop() {
 	s.Log.Info("stopping")
 
-	s.smtpServer.Stop()
+	s.stopSMTPServers()
 
 	close(s.stopChan)
 	s.wg.Wait()
+}
+
+func (s *Server) stopSMTPServers() {
+	for _, server := range s.smtpServers {
+		server.Stop()
+	}
 }

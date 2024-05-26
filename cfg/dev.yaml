@@ -1,0 +1,5 @@
+smtp:
+  servers:
+    main:
+      host: "localhost"
+      port: 2525

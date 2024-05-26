@@ -13,10 +13,10 @@ import (
 )
 
 type ServerCfg struct {
-	Log *log.Logger
+	Log *log.Logger `json:"-"`
 
-	Hosts []string
-	Port  int
+	Hosts []string `json:"hosts"`
+	Port  int      `json:"port"`
 }
 
 type Server struct {

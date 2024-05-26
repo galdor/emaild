@@ -12,14 +12,29 @@ import (
 )
 
 func cmdRun(p *program.Program) {
+	// Command line
+	cfgPath := p.OptionValue("cfg")
+
+	// Logger
 	logger := log.DefaultLogger("emaild")
 	logger.DebugLevel = p.DebugLevel
 
-	cfg := server.ServerCfg{
-		Log:     logger,
-		BuildId: buildId,
+	// Configuration
+	var cfg server.ServerCfg
+
+	if cfgPath != "" {
+		logger.Info("loading configuration file %q", cfgPath)
+
+		if err := cfg.Load(cfgPath); err != nil {
+			logger.Error("cannot load configuration from %q: %v", cfgPath, err)
+			os.Exit(1)
+		}
 	}
 
+	cfg.Log = logger
+	cfg.BuildId = buildId
+
+	// Server
 	server := server.NewServer(cfg)
 
 	if err := server.Start(); err != nil {
