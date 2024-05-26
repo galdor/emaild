@@ -14,9 +14,9 @@ import (
 )
 
 type ServerCfg struct {
-	BuildId string      `json:"-"`
-	Log     *log.Logger `json:"-"`
+	BuildId string `json:"-"`
 
+	Logger      *log.LoggerCfg            `json:"logger"`
 	SMTPServers map[string]smtp.ServerCfg `json:"smtp_servers"`
 }
 

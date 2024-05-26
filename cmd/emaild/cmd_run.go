@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	"github.com/galdor/emaild/pkg/server"
-	"github.com/galdor/go-log"
 	"github.com/galdor/go-program"
 )
 
@@ -15,31 +14,27 @@ func cmdRun(p *program.Program) {
 	// Command line
 	cfgPath := p.OptionValue("cfg")
 
-	// Logger
-	logger := log.DefaultLogger("emaild")
-	logger.DebugLevel = p.DebugLevel
-
 	// Configuration
 	var cfg server.ServerCfg
 
 	if cfgPath != "" {
-		logger.Info("loading configuration file %q", cfgPath)
+		p.Info("loading configuration file %q", cfgPath)
 
 		if err := cfg.Load(cfgPath); err != nil {
-			logger.Error("cannot load configuration from %q: %v", cfgPath, err)
-			os.Exit(1)
+			p.Fatal("cannot load configuration from %q: %v", cfgPath, err)
 		}
 	}
 
-	cfg.Log = logger
 	cfg.BuildId = buildId
 
 	// Server
-	server := server.NewServer(cfg)
+	server, err := server.NewServer(cfg)
+	if err != nil {
+		p.Fatal("cannot create server: %v", err)
+	}
 
 	if err := server.Start(); err != nil {
-		logger.Error("cannot start server: %v", err)
-		os.Exit(1)
+		p.Fatal("cannot start server: %v", err)
 	}
 
 	sigChan := make(chan os.Signal, 1)
@@ -48,7 +43,7 @@ func cmdRun(p *program.Program) {
 	select {
 	case signo := <-sigChan:
 		fmt.Fprintln(os.Stderr)
-		logger.Info("received signal %d (%v)", signo, signo)
+		p.Info("received signal %d (%v)", signo, signo)
 	}
 
 	server.Stop()

@@ -18,33 +18,38 @@ type Server struct {
 	wg       sync.WaitGroup
 }
 
-func NewServer(cfg ServerCfg) *Server {
+func NewServer(cfg ServerCfg) (*Server, error) {
+	logger, err := log.NewLogger("emaild", *cfg.Logger)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create logger: %w", err)
+	}
+
 	s := Server{
 		Cfg: cfg,
-		Log: cfg.Log,
+		Log: logger,
 
 		smtpServers: make(map[string]*smtp.Server),
 
 		stopChan: make(chan struct{}),
 	}
 
-	return &s
+	return &s, nil
 }
 
 func (s *Server) Start() error {
-	s.Log.Info("starting")
+	s.Log.Debug(1, "starting")
 
 	if err := s.startSMTPServers(); err != nil {
 		return err
 	}
 
-	s.Log.Info("running")
+	s.Log.Debug(1, "running")
 	return nil
 }
 
 func (s *Server) startSMTPServers() error {
 	for name, cfg := range s.Cfg.SMTPServers {
-		cfg.Log = s.Cfg.Log.Child("smtp_server", log.Data{"server": name})
+		cfg.Log = s.Log.Child("smtp_server", log.Data{"server": name})
 
 		server, err := smtp.NewServer(cfg)
 		if err != nil {
@@ -63,7 +68,7 @@ func (s *Server) startSMTPServers() error {
 }
 
 func (s *Server) Stop() {
-	s.Log.Info("stopping")
+	s.Log.Debug(1, "stopping")
 
 	s.stopSMTPServers()
 

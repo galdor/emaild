@@ -21,7 +21,7 @@ func (c *ServerConn) main() {
 	defer c.Server.wg.Done()
 
 	// TODO
-	c.Log.Info("handling connection")
+	c.Log.Debug(1, "handling connection")
 
 	select {
 	case <-c.Server.stopChan:

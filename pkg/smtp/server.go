@@ -139,7 +139,7 @@ func (s *Server) handleConnection(conn net.Conn) error {
 		return fmt.Errorf("invalid remote address %q: %w", remoteAddr, err)
 	}
 
-	s.Log.Info("accepting connection from %q", addr)
+	s.Log.Debug(1, "accepting connection from %q", addr)
 
 	logData := log.Data{
 		"address": addr,

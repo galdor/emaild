@@ -1,3 +1,9 @@
+logger:
+  backend_type: "terminal"
+  terminal_backend:
+    color: true
+  debug_level: 1
+
 smtp_servers:
   main:
     host: "localhost"
