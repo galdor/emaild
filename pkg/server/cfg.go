@@ -17,11 +17,7 @@ type ServerCfg struct {
 	BuildId string      `json:"-"`
 	Log     *log.Logger `json:"-"`
 
-	SMTP SMTPServerCfg `json:"smtp"`
-}
-
-type SMTPServerCfg struct {
-	Servers map[string]smtp.ServerCfg `json:"servers"`
+	SMTPServers map[string]smtp.ServerCfg `json:"smtp_servers"`
 }
 
 func (cfg *ServerCfg) Load(filePath string) error {

@@ -1,5 +1,4 @@
-smtp:
-  servers:
-    main:
-      host: "localhost"
-      port: 2525
+smtp_servers:
+  main:
+    host: "localhost"
+    port: 2525
