@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/galdor/go-ejson"
 	"github.com/galdor/go-log"
 )
 
@@ -17,6 +18,11 @@ type ServerCfg struct {
 
 	Host string `json:"host"`
 	Port int    `json:"port"`
+}
+
+func (cfg *ServerCfg) ValidateJSON(v *ejson.Validator) {
+	v.CheckStringNotEmpty("host", cfg.Host)
+	v.CheckIntMinMax("port", cfg.Port, 1, 65535)
 }
 
 type Server struct {

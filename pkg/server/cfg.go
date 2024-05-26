@@ -16,8 +16,18 @@ import (
 type ServerCfg struct {
 	BuildId string `json:"-"`
 
-	Logger      *log.LoggerCfg            `json:"logger"`
-	SMTPServers map[string]smtp.ServerCfg `json:"smtp_servers"`
+	Logger      *log.LoggerCfg             `json:"logger"`
+	SMTPServers map[string]*smtp.ServerCfg `json:"smtp_servers"`
+}
+
+func (cfg *ServerCfg) ValidateJSON(v *ejson.Validator) {
+	v.CheckOptionalObject("logger", cfg.Logger)
+
+	v.WithChild("smtp_servers", func() {
+		for name, cfg := range cfg.SMTPServers {
+			v.CheckObject(name, cfg)
+		}
+	})
 }
 
 func (cfg *ServerCfg) Load(filePath string) error {

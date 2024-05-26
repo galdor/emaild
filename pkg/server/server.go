@@ -19,9 +19,15 @@ type Server struct {
 }
 
 func NewServer(cfg ServerCfg) (*Server, error) {
-	logger, err := log.NewLogger("emaild", *cfg.Logger)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create logger: %w", err)
+	var logger *log.Logger
+	if cfg.Logger == nil {
+		logger = log.DefaultLogger("emaild")
+	} else {
+		var err error
+		logger, err = log.NewLogger("emaild", *cfg.Logger)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create logger: %w", err)
+		}
 	}
 
 	s := Server{
@@ -48,7 +54,8 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) startSMTPServers() error {
-	for name, cfg := range s.Cfg.SMTPServers {
+	for name, pcfg := range s.Cfg.SMTPServers {
+		cfg := *pcfg
 		cfg.Log = s.Log.Child("smtp_server", log.Data{"server": name})
 
 		server, err := smtp.NewServer(cfg)
