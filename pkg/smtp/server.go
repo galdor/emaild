@@ -31,7 +31,7 @@ type Server struct {
 
 	listeners []net.Listener
 
-	conns      []*ServerConn
+	conns      map[*ServerConn]struct{}
 	connsMutex sync.Mutex
 
 	stopChan chan struct{}
@@ -42,6 +42,8 @@ func NewServer(cfg ServerCfg) (*Server, error) {
 	c := Server{
 		Cfg: cfg,
 		Log: cfg.Log,
+
+		conns: make(map[*ServerConn]struct{}),
 
 		stopChan: make(chan struct{}),
 	}
@@ -97,7 +99,7 @@ func (s *Server) Stop() {
 	close(s.stopChan)
 
 	s.connsMutex.Lock()
-	for _, conn := range s.conns {
+	for conn := range s.conns {
 		conn.Close()
 	}
 	s.connsMutex.Unlock()
@@ -151,7 +153,7 @@ func (s *Server) handleConnection(conn net.Conn) error {
 		"address": addr,
 	}
 
-	sconn := ServerConn{
+	c := ServerConn{
 		Server: s,
 		Log:    s.Log.Child("conn", logData),
 
@@ -159,11 +161,10 @@ func (s *Server) handleConnection(conn net.Conn) error {
 	}
 
 	s.connsMutex.Lock()
-	s.conns = append(s.conns, &sconn)
+	s.conns[&c] = struct{}{}
 	s.connsMutex.Unlock()
 
-	s.wg.Add(1)
-	go sconn.main()
+	c.Start()
 
 	return nil
 }
