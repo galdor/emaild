@@ -15,8 +15,8 @@ import (
 type ServerCfg struct {
 	Log *log.Logger `json:"-"`
 
-	Hosts []string `json:"hosts"`
-	Port  int      `json:"port"`
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }
 
 type Server struct {
@@ -41,7 +41,7 @@ func NewServer(cfg ServerCfg) (*Server, error) {
 }
 
 func (s *Server) Start() error {
-	addrs, err := s.resolveHosts(s.Cfg.Hosts)
+	addrs, err := s.resolveHost()
 	if err != nil {
 		return err
 	}
@@ -70,20 +70,15 @@ func (s *Server) Start() error {
 	return nil
 }
 
-func (s *Server) resolveHosts(hosts []string) ([]string, error) {
+func (s *Server) resolveHost() ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	var resolver net.Resolver
-	var addrs []string
 
-	for _, host := range hosts {
-		hAddrs, err := resolver.LookupHost(ctx, host)
-		if err != nil {
-			return nil, fmt.Errorf("cannot resolve host %q: %w", host, err)
-		}
-
-		addrs = append(addrs, hAddrs...)
+	addrs, err := resolver.LookupHost(ctx, s.Cfg.Host)
+	if err != nil {
+		return nil, fmt.Errorf("cannot resolve host: %w", err)
 	}
 
 	return addrs, nil
