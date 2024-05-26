@@ -25,6 +25,9 @@ type Server struct {
 
 	listeners []net.Listener
 
+	conns      []*ServerConn
+	connsMutex sync.Mutex
+
 	stopChan chan struct{}
 	wg       sync.WaitGroup
 }
@@ -87,6 +90,12 @@ func (s *Server) resolveHost() ([]string, error) {
 func (s *Server) Stop() {
 	close(s.stopChan)
 
+	s.connsMutex.Lock()
+	for _, conn := range s.conns {
+		conn.Close()
+	}
+	s.connsMutex.Unlock()
+
 	for _, listener := range s.listeners {
 		listener.Close()
 	}
@@ -123,11 +132,32 @@ func (s *Server) listen(listener net.Listener) {
 }
 
 func (s *Server) handleConnection(conn net.Conn) error {
-	remoteAddr := conn.RemoteAddr()
-	s.Log.Debug(1, "accepting connection from %q", remoteAddr.String())
+	remoteAddr := conn.RemoteAddr().String()
 
-	// TODO
+	addr, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return fmt.Errorf("invalid remote address %q: %w", remoteAddr, err)
+	}
 
-	conn.Close()
+	s.Log.Info("accepting connection from %q", addr)
+
+	logData := log.Data{
+		"address": addr,
+	}
+
+	sconn := ServerConn{
+		Server: s,
+		Log:    s.Log.Child("conn", logData),
+
+		conn: conn,
+	}
+
+	s.connsMutex.Lock()
+	s.conns = append(s.conns, &sconn)
+	s.connsMutex.Unlock()
+
+	s.wg.Add(1)
+	go sconn.main()
+
 	return nil
 }

@@ -44,7 +44,7 @@ func (s *Server) Start() error {
 
 func (s *Server) startSMTPServers() error {
 	for name, cfg := range s.Cfg.SMTPServers {
-		cfg.Log = s.Cfg.Log.Child("smtp_server", log.Data{"name": name})
+		cfg.Log = s.Cfg.Log.Child("smtp_server", log.Data{"server": name})
 
 		server, err := smtp.NewServer(cfg)
 		if err != nil {
