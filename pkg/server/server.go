@@ -60,11 +60,11 @@ func (s *Server) startSMTPServers() error {
 
 		server, err := smtp.NewServer(cfg)
 		if err != nil {
-			return fmt.Errorf("cannot create smtp server %q: %w", name, err)
+			return fmt.Errorf("cannot create SMTP server %q: %w", name, err)
 		}
 
 		if err := server.Start(); err != nil {
-			return fmt.Errorf("cannot start smtp server %q: %w", err)
+			return fmt.Errorf("cannot start SMTP server %q: %w", err)
 		}
 
 		s.smtpServers[name] = server

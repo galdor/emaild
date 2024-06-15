@@ -18,16 +18,21 @@ type ServerCfg struct {
 
 	Host string `json:"host"`
 	Port int    `json:"port"`
+
+	PublicHost string `json:"public_host"`
 }
 
 func (cfg *ServerCfg) ValidateJSON(v *ejson.Validator) {
 	v.CheckStringNotEmpty("host", cfg.Host)
 	v.CheckIntMinMax("port", cfg.Port, 1, 65535)
+	v.CheckStringNotEmpty("public_host", cfg.PublicHost)
 }
 
 type Server struct {
 	Cfg ServerCfg
 	Log *log.Logger
+
+	extensions map[string]string
 
 	listeners []net.Listener
 
@@ -39,16 +44,20 @@ type Server struct {
 }
 
 func NewServer(cfg ServerCfg) (*Server, error) {
-	c := Server{
+	s := Server{
 		Cfg: cfg,
 		Log: cfg.Log,
+
+		extensions: make(map[string]string),
 
 		conns: make(map[*ServerConn]struct{}),
 
 		stopChan: make(chan struct{}),
 	}
 
-	return &c, nil
+	s.extensions["8BITMIME"] = ""
+
+	return &s, nil
 }
 
 func (s *Server) Start() error {

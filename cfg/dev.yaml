@@ -8,3 +8,4 @@ smtp_servers:
   main:
     host: "localhost"
     port: 2525
+    public_host: "localhost"
