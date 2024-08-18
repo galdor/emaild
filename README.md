@@ -22,12 +22,12 @@ build and maintain Emaild.
 
 ### Bug reporting
 I am thankful for any bug report. Feel free to open issues and include as much
-useful information as possible. I cannot however guarantee that I will fix
-every bug.
+useful information as possible. I cannot however guarantee that I will fix every
+bug.
 
 ### Ideas and feature suggestions
-Ideas about current systems and suggestions for new ones are welcome, either
-on GitHub discussions or by [email](mailto:nicolas@n16f.net).
+Ideas about current systems and suggestions for new ones are welcome, either on
+GitHub discussions or by [email](mailto:nicolas@n16f.net).
 
 You can also [hire me](mailto:nicolas@exograd.com) for support or to develop
 specific features.
