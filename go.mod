@@ -6,7 +6,7 @@ require (
 	github.com/galdor/go-ejson v0.0.0-20240526131538-b29d6e641904
 	github.com/galdor/go-log v0.0.0-20231116135458-c8a467cfb388
 	github.com/galdor/go-program v0.0.0-20230403162644-22adfbe9fbab
-	go.n16f.net/yamlutils v0.0.0-20240818113927-d4acac9b8e01
+	go.n16f.net/eyaml v0.0.0-20240822141541-96f4fcff8320
 	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81
 )
 

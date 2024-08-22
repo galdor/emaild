@@ -7,7 +7,7 @@ import (
 	"github.com/galdor/emaild/pkg/smtp"
 	"github.com/galdor/go-ejson"
 	"github.com/galdor/go-log"
-	"go.n16f.net/yamlutils"
+	"go.n16f.net/eyaml"
 )
 
 type ServerCfg struct {
@@ -33,5 +33,5 @@ func (cfg *ServerCfg) Load(filePath string) error {
 		return fmt.Errorf("cannot read %q: %w", filePath, err)
 	}
 
-	return yamlutils.Load(data, cfg)
+	return eyaml.Load(data, cfg)
 }
